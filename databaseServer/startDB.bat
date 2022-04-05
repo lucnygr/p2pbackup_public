@@ -1,0 +1,2 @@
+java -cp "C:\Users\gregor\.m2\repository\org\hsqldb\hsqldb\2.5.2\hsqldb-2.5.2.jar" org.hsqldb.server.Server --port 9876 --database.0 file:db/user1 --dbname.0 user1 --database.1 file:db/user2 --dbname.1 user2 --database.2 file:db/user3 --dbname.2 user3 --database.3 file:db/user4 --dbname.3 user4 --database.4 file:db/user1_recovery --dbname.4 user1_recovery
+pause

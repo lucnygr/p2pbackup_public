@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+
+    <changeSet id="1647547428664-1" author="gregor" logicalFilePath="path-independent">
+        <createTable tableName="restore_path">
+            <column name="id" type="VARCHAR(256)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_restore_path"/>
+            </column>
+            <column name="path_version_id" type="VARCHAR(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="path" type="VARCHAR(1024)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1643896619055-2" author="gregor" logicalFilePath="path-independent">
+        <addUniqueConstraint columnNames="path_version_id,path" constraintName="uc_restore_path_path_version_id_path"
+                             tableName="restore_path"/>
+    </changeSet>
+
+    <changeSet id="1643896619055-3" author="gregor" logicalFilePath="path-independent">
+        <addForeignKeyConstraint baseColumnNames="path_version_id" baseTableName="restore_path"
+                                 constraintName="FK_RESTORE_PATH_ON_PATH_VERSION" referencedColumnNames="id"
+                                 referencedTableName="path_version"/>
+    </changeSet>
+
+    <changeSet id="1647547497918-1" author="gregor" logicalFilePath="path-independent">
+        <createTable tableName="restore_block_data">
+            <column name="type" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="id" type="VARCHAR(256)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_restore_block_data"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1643896629992-2" author="gregor" logicalFilePath="path-independent">
+        <addForeignKeyConstraint baseColumnNames="id" baseTableName="restore_block_data"
+                                 constraintName="FK_RESTORE_BLOCK_DATA_ON_ID" referencedColumnNames="id"
+                                 referencedTableName="block_meta_data"/>
+    </changeSet>
+
+    <changeSet id="1643896629992-4" author="gregor" logicalFilePath="path-independent">
+        <createTable tableName="RESTORE_PATH_RESTORE_BLOCK_DATA">
+            <column name="RESTORE_PATH_ID" type="VARCHAR(256)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_RESTORE_PATH_RESTORE_BLOCK_DATA"/>
+            </column>
+            <column name="RESTORE_BLOCK_DATA_ID" type="VARCHAR(256)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_RESTORE_PATH_RESTORE_BLOCK_DATA"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1643896629992-5" author="gregor" logicalFilePath="path-independent">
+        <addForeignKeyConstraint baseColumnNames="RESTORE_PATH_ID" baseTableName="RESTORE_PATH_RESTORE_BLOCK_DATA"
+                                 constraintName="FK_RESTORE_PATH_RESTORE_BLOCK_DATA_RESTORE_PATH_ID"
+                                 referencedColumnNames="id"
+                                 referencedTableName="RESTORE_PATH"/>
+    </changeSet>
+
+    <changeSet id="1643896629992-6" author="gregor" logicalFilePath="path-independent">
+        <addForeignKeyConstraint baseColumnNames="RESTORE_BLOCK_DATA_ID" baseTableName="RESTORE_PATH_RESTORE_BLOCK_DATA"
+                                 constraintName="FK_RESTORE_PATH_RESTORE_BLOCK_DATA_RESTORE_BLOCK_DATA_ID"
+                                 referencedColumnNames="id"
+                                 referencedTableName="RESTORE_BLOCK_DATA"/>
+    </changeSet>
+
+
+</databaseChangeLog>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <changeSet id="1637693141456-1" author="gregor" logicalFilePath="path-independent">
+        <createTable tableName="root_directory">
+            <column name="id" type="VARCHAR(256)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_root_directory"/>
+            </column>
+            <column name="date_created" type="DATETIME">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_updated" type="DATETIME">
+                <constraints nullable="false"/>
+            </column>
+            <column name="name" type="VARCHAR(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="path" type="VARCHAR(1024)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1647694283729-1" author="gregor" logicalFilePath="path-independent">
+        <addUniqueConstraint columnNames="name" constraintName="uc_root_directory_name" tableName="root_directory"/>
+    </changeSet>
+
+
+</databaseChangeLog>

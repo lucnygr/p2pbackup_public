@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <changeSet id="1640008579789-1" author="gregor" logicalFilePath="path-independent">
+        <addUniqueConstraint columnNames="block_meta_data_id" constraintName="uc_cloud_upload_block_meta_data" tableName="cloud_upload"/>
+    </changeSet>
+</databaseChangeLog>

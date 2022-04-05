@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <changeSet id="1639387209076-1" author="gregor" logicalFilePath="path-independent">
+        <createTable tableName="cloud_upload">
+            <column name="id" type="VARCHAR(256)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_cloud_upload"/>
+            </column>
+            <column name="date_created" type="DATETIME">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_updated" type="DATETIME">
+                <constraints nullable="false"/>
+            </column>
+            <column name="block_meta_data_id" type="VARCHAR(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="mac_secret" type="VARCHAR(64)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="encrypted_block_mac" type="VARCHAR(128)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="provider_id" type="VARCHAR(128)"/>
+            <column name="share_url" type="VARCHAR(512)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1639387209076-2" author="gregor" logicalFilePath="path-independent">
+        <addForeignKeyConstraint baseColumnNames="block_meta_data_id" baseTableName="cloud_upload"
+                                 constraintName="FK_CLOUD_UPLOAD_ON_BLOCK_META_DATA" referencedColumnNames="id"
+                                 referencedTableName="block_meta_data"/>
+    </changeSet>
+</databaseChangeLog>

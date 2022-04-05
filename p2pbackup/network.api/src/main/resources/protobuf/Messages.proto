@@ -1,0 +1,127 @@
+syntax = "proto3";
+package at.lucny.p2pbackup.network.dto;
+
+option optimize_for = SPEED;
+option java_generate_equals_and_hash = true;
+option java_multiple_files = true;
+
+message ProtocolMessage {
+
+  oneof message {
+    BackupBlock backup = 1;
+    BackupBlockSuccess backupSuccess = 2;
+    BackupBlockFailure backupFailure = 3;
+    DeleteBlock deleteBlock = 4;
+
+    VerifyBlock verifyBlock = 10;
+    VerifyBlockResponse verifyBlockResponse = 11;
+    VerifyBlockFailure verifyBlockFailure = 12;
+
+    RestoreBlock restoreBlock = 30;
+    RestoreBlockResponse restoreBlockResponse = 31;
+    RestoreBlockFailure restoreBlockFailure = 32;
+
+    RecoverBackupIndex recoverBackupIndex = 40;
+    RecoverBackupIndexResponse recoverBackupIndexReponse = 41;
+    RecoverBlocksResponse recoverBlocksResponse = 51;
+
+    string text = 90;
+  }
+
+}
+
+// ---------------------------------------------
+// BACKUP
+message BackupBlock {
+  string id = 1;
+  string downloadURL = 2;
+  string macSecret = 3;
+  string macOfBlock = 4;
+}
+
+message BackupBlockSuccess {
+  string id = 1;
+}
+
+message BackupBlockFailure {
+  string id = 1;
+  BackupBlockFailureType type = 2;
+
+  enum BackupBlockFailureType {
+    GENERAL = 0;
+    WRONG_MAC = 1;
+    USER_NOT_ALLOWED = 2;
+    BLOCK_ALREADY_SAVED_WITH_OTHER_MAC = 3;
+  }
+}
+
+message DeleteBlock {
+  repeated string id = 1;
+}
+
+// ---------------------------------------------
+// VERIFY
+// Verification messages
+message VerifyBlock {
+  string id = 1;
+  string verificationValueId = 2;
+}
+
+message VerifyBlockResponse {
+  string id = 1;
+  string verificationValueId = 2;
+  string hash = 3;
+}
+
+message VerifyBlockFailure {
+  string id = 1;
+  VerifyBlockFailureType type = 2;
+
+  enum VerifyBlockFailureType {
+    GENERAL = 0;
+    BLOCK_MISSING = 1;
+  }
+}
+
+// ---------------------------------------------
+// RESTORE
+// Restore messages
+enum RestoreBlockFor {
+  RESTORE = 0;
+  REDISTRIBUTION = 1;
+  VERIFICATION = 2;
+}
+
+message RestoreBlock {
+  repeated string id = 1;
+  RestoreBlockFor for = 2;
+}
+
+message RestoreBlockResponse {
+  string id = 1;
+  bytes data = 2;
+  RestoreBlockFor for = 3;
+}
+
+message RestoreBlockFailure {
+  string id = 1;
+  RestoreBlockFailureType type = 2;
+
+  enum RestoreBlockFailureType {
+    GENERAL = 0;
+    BLOCK_MISSING = 1;
+  }
+}
+
+message RecoverBackupIndex {
+
+}
+
+message RecoverBackupIndexResponse {
+  string latestBackupIndexId = 1;
+  bytes latestBackupIndex = 2;
+}
+
+message RecoverBlocksResponse {
+  repeated string blockIds = 1;
+}

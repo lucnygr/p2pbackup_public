@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <changeSet id="1636728729355-1" author="gregor" logicalFilePath="path-independent">
+        <createTable tableName="USER">
+            <column name="ID" type="varchar(255)">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="CERTIFICATE" type="blob">
+                <constraints nullable="false"/>
+            </column>
+            <column name="allow_backup_data_from_user" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="allow_backup_data_to_user" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1636728729355-2" author="gregor" logicalFilePath="path-independent">
+        <createTable tableName="USER_NETWORK_ADDRESS">
+            <column name="USER_ID" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="HOST" type="varchar(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="PORT" type="integer">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1636728729355-3" author="gregor" logicalFilePath="path-independent">
+        <addForeignKeyConstraint constraintName="FK_USER_NETWORK_ADDRESS_USER_ID" baseTableName="USER_NETWORK_ADDRESS"
+                                 baseColumnNames="USER_ID"
+                                 referencedTableName="USER" referencedColumnNames="ID"/>
+    </changeSet>
+
+</databaseChangeLog>

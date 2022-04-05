@@ -1,0 +1,12 @@
+at:
+  lucny:
+    p2p-backup:
+      user: user1
+      network:
+        port: 10001
+      keystore: classpath:user1/user1.pfx
+      password: passworduser1
+
+spring:
+  datasource:
+    url: jdbc:hsqldb:mem:user1;shutdown=true

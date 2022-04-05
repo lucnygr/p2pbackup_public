@@ -1,0 +1,40 @@
+syntax = "proto3";
+package at.lucny.p2pbackup.backup.dto;
+
+option optimize_for = SPEED;
+option java_generate_equals_and_hash = true;
+option java_multiple_files = true;
+
+message PathDataVersion {
+
+  string rootDirectoryId = 1;
+
+  string path = 2;
+
+  int64 date = 3;
+
+  string hash = 4;
+
+  bool deleted = 5;
+
+  repeated string blockIds = 10;
+
+}
+
+message BackupIndex {
+
+  int64 date = 1;
+
+  repeated BackupRootDirectory rootDirectories = 2;
+
+  repeated string versionBlockIds = 3;
+
+}
+
+message BackupRootDirectory {
+
+  string id = 1;
+
+  string name = 2;
+
+}

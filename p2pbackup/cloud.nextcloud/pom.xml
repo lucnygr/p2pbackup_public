@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>p2pbackup</artifactId>
+        <groupId>at.lucny.p2pbackup</groupId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>cloud.nextcloud</artifactId>
+
+    <dependencies>
+        <!-- __________________________________________________________________________ -->
+        <!-- Dependencies to own API-Modules -->
+        <dependency>
+            <groupId>at.lucny.p2pbackup</groupId>
+            <artifactId>cloud.api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>at.lucny.p2pbackup</groupId>
+            <artifactId>configuration.api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>at.lucny.p2pbackup</groupId>
+            <artifactId>application.api</artifactId>
+        </dependency>
+
+        <!-- __________________________________________________________________________ -->
+        <!-- Dependency to access nextcloud -->
+        <dependency>
+            <groupId>org.aarboard.nextcloud</groupId>
+            <artifactId>nextcloud-api</artifactId>
+        </dependency>
+
+        <!-- __________________________________________________________________________ -->
+        <!-- Spring dependencies -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.shell</groupId>
+            <artifactId>spring-shell-standard</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+</project>

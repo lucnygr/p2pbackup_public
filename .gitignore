@@ -1,0 +1,19 @@
+**/.idea/
+**/.jpb/
+
+# Default ignored files
+/shelf/
+/workspace.xml
+
+**/target/
+
+**/*.log
+**/*.pem
+**/*.pfx
+
+user1*
+user2*
+user3*
+user4*
+
+**/*.run.xml

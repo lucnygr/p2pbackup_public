@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <changeSet id="1637920450990-1" author="gregor" logicalFilePath="path-independent">
+        <createTable tableName="block_meta_data">
+            <column name="id" type="VARCHAR(256)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_block_meta_data"/>
+            </column>
+            <column name="date_created" type="DATETIME">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_updated" type="DATETIME">
+                <constraints nullable="false"/>
+            </column>
+            <column name="hash" type="VARCHAR(64)"/>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1638087995988-1" author="gregor" logicalFilePath="path-independent">
+        <addUniqueConstraint columnNames="hash" constraintName="uc_block_meta_data_hash" tableName="block_meta_data"/>
+    </changeSet>
+
+    <changeSet id="1637920506946-1" author="gregor" logicalFilePath="path-independent">
+        <createTable tableName="path_data">
+            <column name="id" type="VARCHAR(256)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_path_data"/>
+            </column>
+            <column name="date_created" type="DATETIME">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_updated" type="DATETIME">
+                <constraints nullable="false"/>
+            </column>
+            <column name="root_directory_id" type="VARCHAR(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="path" type="VARCHAR(1024)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1637920506946-2" author="gregor" logicalFilePath="path-independent">
+        <addForeignKeyConstraint baseColumnNames="root_directory_id" baseTableName="path_data"
+                                 constraintName="FK_PATH_DATA_ON_ROOT_DIRECTORY" referencedColumnNames="id"
+                                 referencedTableName="root_directory"/>
+    </changeSet>
+
+    <changeSet id="1637945195423-1" author="gregor" logicalFilePath="path-independent">
+        <createTable tableName="path_version">
+            <column name="id" type="VARCHAR(256)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_path_version"/>
+            </column>
+            <column name="date" type="DATETIME">
+                <constraints nullable="false"/>
+            </column>
+            <column name="hash" type="VARCHAR(64)"/>
+            <column name="deleted" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="path_data_id" type="VARCHAR(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="block_meta_data_id" type="VARCHAR(256)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1637943143882-1" author="gregor" logicalFilePath="path-independent">
+        <addForeignKeyConstraint baseColumnNames="path_data_id" baseTableName="path_version"
+                                 constraintName="FK_PATH_VERSION_ON_PATH_DATA" referencedColumnNames="id"
+                                 referencedTableName="path_data"/>
+    </changeSet>
+    <changeSet id="1640344696260-1" author="gregor" logicalFilePath="path-independent">
+        <addForeignKeyConstraint baseColumnNames="block_meta_data_id" baseTableName="path_version"
+                                 constraintName="FK_PATH_VERSION_ON_BLOCK_META_DATA" referencedColumnNames="id"
+                                 referencedTableName="block_meta_data"/>
+    </changeSet>
+
+    <changeSet id="1637920560174-1" author="gregor" logicalFilePath="path-independent">
+        <createTable tableName="PATH_VERSION_BLOCK_META_DATA">
+            <column name="PATH_VERSION_ID" type="VARCHAR(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="BLOCK_META_DATA_ID" type="VARCHAR(256)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="POSITION" type="int">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1637920718869-1" author="gregor" logicalFilePath="path-independent">
+        <addForeignKeyConstraint baseTableName="PATH_VERSION_BLOCK_META_DATA" baseColumnNames="PATH_VERSION_ID"
+                                 referencedTableName="PATH_VERSION" referencedColumnNames="ID"
+                                 constraintName="FK_PATH_VERSION_BLOCK_META_DATA_ON_PATH_VERSION"/>
+    </changeSet>
+    <changeSet id="1637920800259-1" author="gregor" logicalFilePath="path-independent">
+        <addForeignKeyConstraint baseTableName="PATH_VERSION_BLOCK_META_DATA" baseColumnNames="BLOCK_META_DATA_ID"
+                                 referencedTableName="BLOCK_META_DATA" referencedColumnNames="ID"
+                                 constraintName="FK_PATH_VERSION_BLOCK_META_DATA_ON_BLOCK_META_DATA"/>
+    </changeSet>
+
+
+</databaseChangeLog>

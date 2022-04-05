@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <changeSet id="1637966087286-1" author="gregor" logicalFilePath="path-independent">
+        <createTable tableName="data_location">
+            <column name="id" type="VARCHAR(256)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_data_location"/>
+            </column>
+            <column name="date_created" type="DATETIME">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date_updated" type="DATETIME">
+                <constraints nullable="false"/>
+            </column>
+            <column name="user_id" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="verified" type="DATETIME">
+                <constraints nullable="false"/>
+            </column>
+            <column name="block_meta_data_id" type="VARCHAR(256)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1637966087286-2" author="gregor" logicalFilePath="path-independent">
+        <addForeignKeyConstraint baseColumnNames="block_meta_data_id" baseTableName="data_location"
+                                 constraintName="FK_DATA_LOCATION_ON_BLOCK_META_DATA" referencedColumnNames="id"
+                                 referencedTableName="block_meta_data"/>
+    </changeSet>
+    <changeSet id="1638088200180-1" author="gregor" logicalFilePath="path-independent">
+        <addUniqueConstraint columnNames="block_meta_data_id, user_id"
+                             constraintName="uc_data_location_block_meta_data_id_user_id"
+                             tableName="data_location"/>
+    </changeSet>
+
+
+</databaseChangeLog>

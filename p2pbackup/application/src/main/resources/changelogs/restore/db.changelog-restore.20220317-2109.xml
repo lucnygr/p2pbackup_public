@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <changeSet id="1647547794428-1" author="gregor" logicalFilePath="path-independent">
+        <createTable tableName="recover_backup_index">
+            <column name="id" type="VARCHAR(256)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_recover_backup_index"/>
+            </column>
+            <column name="date" type="DATETIME">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1647547794428-2" author="gregor" logicalFilePath="path-independent">
+        <createTable tableName="RECOVER_BACKUP_INDEX_ROOT_DIRECTORY">
+            <column name="RECOVER_BACKUP_INDEX_ID" type="VARCHAR(256)">
+                <constraints nullable="false" primaryKey="true"
+                             primaryKeyName="pk_RECOVER_BACKUP_INDEX_ROOT_DIRECTORY"/>
+            </column>
+            <column name="ROOT_DIRECTORY_ID" type="VARCHAR(256)">
+                <constraints nullable="false" primaryKey="true"
+                             primaryKeyName="pk_RECOVER_BACKUP_INDEX_ROOT_DIRECTORY"/>
+            </column>
+            <column name="ROOT_DIRECTORY_NAME" type="VARCHAR(256)">
+                <constraints nullable="false" primaryKey="true"
+                             primaryKeyName="pk_RECOVER_BACKUP_INDEX_ROOT_DIRECTORY"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1647547794428-3" author="gregor" logicalFilePath="path-independent">
+        <createTable tableName="RECOVER_BACKUP_INDEX_VERSION_BLOCK">
+            <column name="RECOVER_BACKUP_INDEX_ID" type="VARCHAR(256)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_RECOVER_BACKUP_INDEX_VERSION_BLOCK"/>
+            </column>
+            <column name="BLOCK_ID" type="VARCHAR(256)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_RECOVER_BACKUP_INDEX_VERSION_BLOCK"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet id="1647547794428-4" author="gregor" logicalFilePath="path-independent">
+        <addForeignKeyConstraint baseColumnNames="RECOVER_BACKUP_INDEX_ID"
+                                 baseTableName="RECOVER_BACKUP_INDEX_ROOT_DIRECTORY"
+                                 constraintName="FK_RECOVER_BACKUP_INDEX_ROOT_DIRECTORY_RECOVER_BACKUP_INDEX_ID"
+                                 referencedColumnNames="id"
+                                 referencedTableName="RECOVER_BACKUP_INDEX"/>
+    </changeSet>
+
+    <changeSet id="1647547794428-5" author="gregor" logicalFilePath="path-independent">
+        <addForeignKeyConstraint baseColumnNames="RECOVER_BACKUP_INDEX_ID"
+                                 baseTableName="RECOVER_BACKUP_INDEX_VERSION_BLOCK"
+                                 constraintName="FK_RECOVER_BACKUP_INDEX_VERSION_BLOCK_RECOVER_BACKUP_INDEX_ID"
+                                 referencedColumnNames="id"
+                                 referencedTableName="RECOVER_BACKUP_INDEX"/>
+    </changeSet>
+
+</databaseChangeLog>
