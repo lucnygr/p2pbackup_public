@@ -139,7 +139,7 @@ public class BackupServiceImpl implements BackupService {
                         }
 
                         LOGGER.debug("backup new version for {}", wrapper.absoluteFilePath);
-                        BlockMetaData blockOfVersion = this.backupServiceWorker.addPathChangedVersionRecord(rootDirectory, wrapper.relativeFilePath, version);
+                        this.backupServiceWorker.addPathChangedVersionRecord(rootDirectory, wrapper.relativeFilePath, version);
                     });
         }
 

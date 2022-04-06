@@ -51,12 +51,13 @@ public class RestoreCommands {
         Optional<RootDirectory> optionalRootDirectory = this.backupService.getRootDirectory(name);
         if (optionalRootDirectory.isEmpty()) {
             LOGGER.info("backup-directory {} is not configured", name);
-        } else {
-            RootDirectory rootDirectory = optionalRootDirectory.get();
-            this.restorationService.beginRestore(rootDirectory, LocalDateTime.now(ZoneOffset.UTC), directory);
-            this.restoreAgent.restore();
-            LOGGER.info("started restore for directory {}", targetDirectory);
+            return;
         }
+
+        RootDirectory rootDirectory = optionalRootDirectory.get();
+        this.restorationService.beginRestore(rootDirectory, LocalDateTime.now(ZoneOffset.UTC), directory);
+        this.restoreAgent.restore();
+        LOGGER.info("started restore for directory {}", targetDirectory);
     }
 
     @ShellMethod("Restores the given directory to a specific directory for the given date")

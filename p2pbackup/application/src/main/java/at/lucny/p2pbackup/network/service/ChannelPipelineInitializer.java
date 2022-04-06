@@ -60,9 +60,6 @@ public class ChannelPipelineInitializer extends ChannelInitializer<Channel> {
         SslHandler sslHandler = new SslHandler(this.sslEngineSupplier.get());
         pipeline.addLast("ssl", sslHandler);
 
-        // pipeline.addLast("traffic", new GlobalTrafficShapingHandler(timer,
-        // writeLimit, readLimit, interval));
-
         pipeline.addLast("framerDownstream", FRAMER_DOWNSTREAM);
         pipeline.addLast("framerUpstream", new ProtobufVarint32FrameDecoder());
 
@@ -72,8 +69,6 @@ public class ChannelPipelineInitializer extends ChannelInitializer<Channel> {
         pipeline.addLast(LOGGING_HANDLER);
         pipeline.addLast(USER_EXTRACTING_HANDLER);
         pipeline.addLast(MESSAGE_WRAPPER_HANDLER);
-
-        //pipeline.addLast("idleStateHandler", new IdleStateHandler());
 
         for (Entry<String, ChannelHandler> entry : this.handlerMap.entrySet()) {
             pipeline.addLast(entry.getKey(), entry.getValue());

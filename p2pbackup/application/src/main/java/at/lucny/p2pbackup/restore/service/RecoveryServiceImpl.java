@@ -83,6 +83,11 @@ public class RecoveryServiceImpl implements RecoveryService {
     }
 
     @Override
+    public boolean isRecoveryActive() {
+        return this.configuration.containsKey(ConfigurationConstants.PROPERTY_RECOVERY_STATE);
+    }
+
+    @Override
     public void recoverBackupIndex() {
         LOGGER.trace("begin recoverBackupIndex");
 

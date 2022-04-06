@@ -9,6 +9,14 @@ import java.util.Set;
 
 public interface RecoveryService {
 
+
+    /**
+     * Returns true if there is currently an active recovery running.
+     *
+     * @return if recovery is active
+     */
+    boolean isRecoveryActive();
+
     void recoverBackupIndex();
 
     /**

@@ -107,8 +107,6 @@ public class GoogleDriveStorageServiceImpl implements CloudStorageService {
         }
         GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(GsonFactory.getDefaultInstance(), new InputStreamReader(this.credentials.getInputStream()));
 
-        //MemoryDataStoreFactory dataStore = MemoryDataStoreFactory.getDefaultInstance();
-
         Path credentialStore = this.p2PBackupProperties.getConfigDir().resolve("GoogleDriveCredentials");
         Files.createDirectories(credentialStore);
         FileDataStoreFactory fileDataStoreFactory = new FileDataStoreFactory(credentialStore.toFile());

@@ -74,11 +74,11 @@ public class UserServiceImpl implements UserService {
             LOGGER.info("User {} does not exist", userId);
             return;
         }
+        User user = userEntity.get();
 
         Optional<byte[]> certificate = this.loadCertificate(userId, pathToCertificate, true);
 
         if (certificate.isPresent()) {
-            User user = userEntity.get();
             user.setCertificate(certificate.get());
 
             LOGGER.info("Users {} certificate changed", user.getId());
