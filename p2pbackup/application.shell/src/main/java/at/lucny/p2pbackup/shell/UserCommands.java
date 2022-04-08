@@ -47,4 +47,9 @@ public class UserCommands {
         this.userService.changeCertificate(userId, certificatePath);
     }
 
+    @ShellMethod("Changes the permissions of the user")
+    public void changePermissions(@NotNull String userId, @NotNull Boolean allowBackupDataFromUser, @NotNull Boolean allowBackupDataToUser) {
+        this.userService.changePermissions(userId, allowBackupDataFromUser, allowBackupDataToUser);
+    }
+
 }

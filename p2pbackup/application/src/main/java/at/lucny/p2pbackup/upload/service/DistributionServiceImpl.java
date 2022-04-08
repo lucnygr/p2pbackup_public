@@ -90,13 +90,17 @@ public class DistributionServiceImpl implements DistributionService {
     public void distributeBlocks() {
         LOGGER.trace("begin distributeBlocks()");
 
-        long totalNrOfCloudUploads = this.cloudUploadRepository.countByShareUrlIsNotNull();
+        long totalNrOfDistributableBlocks = this.cloudUploadRepository.countByShareUrlIsNotNull();
+        if (totalNrOfDistributableBlocks > 0) {
+            LOGGER.info("prepare to distribute up to {} blocks", totalNrOfDistributableBlocks);
+        }
 
         Set<CloudUpload> cloudUploadsToDelete = new HashSet<>();
-        // try to distribute at maximum 10000 blocks for this iteration
+        // try to distribute at maximum 1000 blocks for this iteration
         List<String> cloudUploadIds = this.cloudUploadRepository.findIdByShareUrlIsNotNull(PageRequest.of(0, 10000)).getContent();
         List<List<String>> partitionedCloudUploadIds = Lists.partition(cloudUploadIds, 100);
         long nrOfProcessedUploads = 0;
+        long nrOfSuccessfullDistributions = 0;
 
         for (List<String> nextCloudUploadIds : partitionedCloudUploadIds) {
             List<CloudUpload> cloudUploads = this.cloudUploadRepository.findAllById(nextCloudUploadIds);
@@ -111,17 +115,19 @@ public class DistributionServiceImpl implements DistributionService {
                     continue;
                 }
 
-                this.distributeBlock(cloudUpload, bmd);
+                if (this.distributeBlock(cloudUpload, bmd)) {
+                    nrOfSuccessfullDistributions++;
+                }
 
                 nrOfProcessedUploads++;
                 if (nrOfProcessedUploads % 100 == 0) {
-                    LOGGER.info("processed {}/{} entries for distribution", nrOfProcessedUploads, totalNrOfCloudUploads);
+                    LOGGER.info("processed {}/{} entries for distribution, {} distributed", nrOfProcessedUploads, totalNrOfDistributableBlocks, nrOfSuccessfullDistributions);
                 }
             }
         }
 
         if (nrOfProcessedUploads > 0) {
-            LOGGER.info("processed {}/{} entries for distribution", nrOfProcessedUploads, totalNrOfCloudUploads);
+            LOGGER.info("processed {}/{} entries for distribution, {} distributed. stop and continue with next run.", nrOfProcessedUploads, totalNrOfDistributableBlocks, nrOfSuccessfullDistributions);
         }
 
         if (!CollectionUtils.isEmpty(cloudUploadsToDelete)) {
@@ -139,12 +145,13 @@ public class DistributionServiceImpl implements DistributionService {
      *
      * @param cloudUpload the cloud-upload-entry for the block with the download-url
      * @param bmd         metadata of the block
+     * @return true if the block could be distributed to an other user, otherwise false
      */
-    private void distributeBlock(CloudUpload cloudUpload, BlockMetaData bmd) {
+    private boolean distributeBlock(CloudUpload cloudUpload, BlockMetaData bmd) {
         List<NettyClient> usersForReplication = this.getUsersForReplication(bmd);
         if (CollectionUtils.isEmpty(usersForReplication)) {
             LOGGER.debug("for backup-block {} are no other users online to backup to", cloudUpload.getBlockMetaData().getId());
-            return;
+            return false;
         }
 
         var backupBlockBuilder = BackupBlock.newBuilder().setId(bmd.getId()).setDownloadURL(cloudUpload.getShareUrl())
@@ -164,8 +171,10 @@ public class DistributionServiceImpl implements DistributionService {
                 }));
             } catch (RuntimeException e) {
                 LOGGER.warn("unable to send backup-block to {}", client.getUser().getId());
+                return false;
             }
         }
+        return true;
     }
 
     private List<NettyClient> getUsersForReplication(BlockMetaData bmd) {
@@ -219,8 +228,6 @@ public class DistributionServiceImpl implements DistributionService {
     @Override
     public void verifyEnoughReplicas() {
         LOGGER.trace("begin verifyEnoughReplicas()");
-
-        LOGGER.info("verify if there are enough replicas of each block");
 
         List<BlockMetaData> blocksWithNotEnoughReplicas = this.blockMetaDataRepository.findBlocksWithNotEnoughVerifiedReplicas(BackupConstants.NR_OF_REPLICAS, this.calulateVerificationInvalidDateTime());
         if (!blocksWithNotEnoughReplicas.isEmpty()) {

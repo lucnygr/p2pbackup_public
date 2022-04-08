@@ -13,6 +13,8 @@ public interface UserService {
 
     void changeCertificate(@NotNull String userId, @NotNull Path pathToCertificate);
 
+    void changePermissions(@NotNull String userId, @NotNull Boolean allowBackupDataFromUser, @NotNull Boolean allowBackupDataToUser);
+
     void deleteUser(@NotNull String userId);
 
     @NotNull @Valid Optional<User> findUser(@NotNull String userId);

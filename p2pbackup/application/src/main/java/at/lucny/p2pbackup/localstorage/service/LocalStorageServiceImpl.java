@@ -8,6 +8,7 @@ import at.lucny.p2pbackup.network.dto.BackupBlockFailure;
 import at.lucny.p2pbackup.user.domain.User;
 import at.lucny.p2pbackup.user.repository.UserRepository;
 import at.lucny.p2pbackup.user.support.UserAddedEvent;
+import at.lucny.p2pbackup.user.support.UserChangedEvent;
 import at.lucny.p2pbackup.user.support.UserDeletedEvent;
 import lombok.SneakyThrows;
 import org.apache.commons.codec.digest.HmacUtils;
@@ -90,6 +91,11 @@ public class LocalStorageServiceImpl implements LocalStorageService {
 
     @TransactionalEventListener
     public void afterUserAdded(UserAddedEvent event) throws IOException {
+        this.initializeDirectories(event.getUserId());
+    }
+
+    @TransactionalEventListener
+    public void afterUserAdded(UserChangedEvent event) throws IOException {
         this.initializeDirectories(event.getUserId());
     }
 

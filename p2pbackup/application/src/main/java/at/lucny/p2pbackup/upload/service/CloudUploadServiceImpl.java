@@ -112,7 +112,7 @@ public class CloudUploadServiceImpl implements CloudUploadService {
                 }
 
                 nrOfProcessedUploads++;
-                if (nrOfProcessedUploads % 100 == 0) {
+                if (nrOfProcessedUploads % 10 == 0) {
                     LOGGER.info("processed {}/{} cloud-upload-entries", nrOfProcessedUploads, totalNrOfCloudUploads);
                 }
             }

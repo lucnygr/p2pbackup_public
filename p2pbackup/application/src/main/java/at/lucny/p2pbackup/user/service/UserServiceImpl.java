@@ -5,6 +5,7 @@ import at.lucny.p2pbackup.user.domain.NetworkAddress;
 import at.lucny.p2pbackup.user.domain.User;
 import at.lucny.p2pbackup.user.repository.UserRepository;
 import at.lucny.p2pbackup.user.support.UserAddedEvent;
+import at.lucny.p2pbackup.user.support.UserChangedEvent;
 import at.lucny.p2pbackup.user.support.UserDeletedEvent;
 import lombok.SneakyThrows;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import javax.validation.constraints.NotNull;
 import java.io.Console;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -81,8 +83,29 @@ public class UserServiceImpl implements UserService {
         if (certificate.isPresent()) {
             user.setCertificate(certificate.get());
 
+            this.applicationEventPublisher.publishEvent(new UserChangedEvent(this, userId));
+
             LOGGER.info("Users {} certificate changed", user.getId());
         }
+    }
+
+    @Override
+    @SneakyThrows
+    @Transactional
+    public void changePermissions(String userId, Boolean allowBackupDataFromUser, Boolean allowBackupDataToUser) {
+        Optional<User> userEntity = this.userRepository.findById(userId);
+        if (userEntity.isEmpty()) {
+            LOGGER.info("User {} does not exist", userId);
+            return;
+        }
+        User user = userEntity.get();
+
+        user.setAllowBackupDataFromUser(allowBackupDataFromUser);
+        user.setAllowBackupDataToUser(allowBackupDataToUser);
+
+        this.applicationEventPublisher.publishEvent(new UserChangedEvent(this, userId));
+
+        LOGGER.info("Users {} permissions changed", user.getId());
     }
 
     private Optional<byte[]> loadCertificate(String userId, Path pathToCertificate, boolean checkSHAFingerprintOfCertificate) throws IOException, CertificateEncodingException {

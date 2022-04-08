@@ -13,7 +13,7 @@ import static at.lucny.p2pbackup.backup.support.BackupConstants.ONE_KILOBYTE;
 @Validated
 public class FixedSizeChunkerServiceImpl implements ChunkerService {
 
-    public static final int BLOCK_SIZE = ONE_KILOBYTE * 100;
+    public static final int BLOCK_SIZE = ONE_KILOBYTE * 500;
 
     @Override
     public ChunkIterator createIterator(Path filePath) {

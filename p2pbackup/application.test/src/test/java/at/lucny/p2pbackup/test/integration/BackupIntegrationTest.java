@@ -194,7 +194,7 @@ class BackupIntegrationTest extends BaseSingleApplicationIntegrationTest {
     @SneakyThrows
     private byte[] decryptBlock(Path pathToBlock, String bmdId) {
         byte[] encryptedData = Files.readAllBytes(pathToBlock);
-        ByteBuffer plainDataBuffer = ByteBuffer.allocate(BackupConstants.ONE_KILOBYTE * 1024);
+        ByteBuffer plainDataBuffer = ByteBuffer.allocate(FixedSizeChunkerServiceImpl.BLOCK_SIZE * 10);
         this.blockEncryptionService.decrypt(ByteBuffer.wrap(encryptedData), bmdId.getBytes(StandardCharsets.UTF_8), plainDataBuffer);
         byte[] plainData = new byte[plainDataBuffer.remaining()];
         plainDataBuffer.get(plainData);
