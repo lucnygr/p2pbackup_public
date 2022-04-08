@@ -1,7 +1,6 @@
 package at.lucny.p2pbackup.test.integration;
 
 import at.lucny.p2pbackup.backup.service.BackupService;
-import at.lucny.p2pbackup.core.domain.BlockMetaDataId;
 import at.lucny.p2pbackup.core.domain.PathVersion;
 import at.lucny.p2pbackup.core.domain.RootDirectory;
 import at.lucny.p2pbackup.core.repository.PathVersionRepository;
@@ -106,7 +105,7 @@ class RestorationIntegrationTest extends BaseSingleApplicationIntegrationTest {
             List<RestorePath> expectedRestorePaths = this.pathDataRepository.findAll().stream().map(pd -> {
                 PathVersion version = pd.getVersions().iterator().next();
                 RestorePath restorePath = new RestorePath(version, getRestoreDir().resolve(pd.getPath()).toString());
-                restorePath.getMissingBlocks().addAll(version.getBlocks().stream().map(b -> new RestoreBlockData(new BlockMetaDataId(b), RestoreType.RESTORE)).toList());
+                restorePath.getMissingBlocks().addAll(version.getBlocks().stream().map(b -> new RestoreBlockData(b, RestoreType.RESTORE)).toList());
                 return restorePath;
             }).sorted(Comparator.comparing(RestorePath::getPath)).toList();
 
@@ -116,8 +115,8 @@ class RestorationIntegrationTest extends BaseSingleApplicationIntegrationTest {
                 assertThat(persistedRestorePaths.get(i).getId()).isNotNull();
                 assertThat(persistedRestorePaths.get(i).getPath()).isEqualTo(expectedRestorePaths.get(i).getPath());
                 assertThat(persistedRestorePaths.get(i).getPathVersion().getId()).isEqualTo(expectedRestorePaths.get(i).getPathVersion().getId());
-                assertThat(persistedRestorePaths.get(i).getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaDataId().getBlockMetaData().getId()).toList())
-                        .containsExactlyInAnyOrderElementsOf(expectedRestorePaths.get(i).getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaDataId().getBlockMetaData().getId()).toList());
+                assertThat(persistedRestorePaths.get(i).getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaData().getId()).toList())
+                        .containsExactlyInAnyOrderElementsOf(expectedRestorePaths.get(i).getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaData().getId()).toList());
             }
         });
     }
@@ -144,7 +143,7 @@ class RestorationIntegrationTest extends BaseSingleApplicationIntegrationTest {
                     .map(pd -> {
                         PathVersion version = pd.getVersions().stream().sorted(Comparator.comparing(PathVersion::getDate).reversed()).findFirst().get(); // get latest path version
                         RestorePath restorePath = new RestorePath(version, getRestoreDir().resolve(pd.getPath()).toString());
-                        restorePath.getMissingBlocks().addAll(version.getBlocks().stream().map(b -> new RestoreBlockData(new BlockMetaDataId(b), RestoreType.RESTORE)).toList());
+                        restorePath.getMissingBlocks().addAll(version.getBlocks().stream().map(b -> new RestoreBlockData(b, RestoreType.RESTORE)).toList());
                         return restorePath;
                     });
             assertThat(path).isPresent();
@@ -165,8 +164,8 @@ class RestorationIntegrationTest extends BaseSingleApplicationIntegrationTest {
             assertThat(persistedRestorePath.getId()).isNotNull();
             assertThat(persistedRestorePath.getPath()).isEqualTo(expectedRestorePathAfterDelete.getPath());
             assertThat(persistedRestorePath.getPathVersion().getId()).isEqualTo(expectedRestorePathAfterDelete.getPathVersion().getId());
-            assertThat(persistedRestorePath.getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaDataId().getBlockMetaData().getId()).toList())
-                    .containsExactlyInAnyOrderElementsOf(expectedRestorePathAfterDelete.getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaDataId().getBlockMetaData().getId()).toList());
+            assertThat(persistedRestorePath.getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaData().getId()).toList())
+                    .containsExactlyInAnyOrderElementsOf(expectedRestorePathAfterDelete.getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaData().getId()).toList());
         });
 
         this.deleteRestorePathEntries();
@@ -180,7 +179,7 @@ class RestorationIntegrationTest extends BaseSingleApplicationIntegrationTest {
                         .map(pd -> {
                             PathVersion version = pd.getVersions().stream().sorted(Comparator.comparing(PathVersion::getDate).reversed()).findFirst().get(); // get latest path version
                             RestorePath restorePath = new RestorePath(version, getRestoreDir().resolve("subdir").resolve(pd.getPath()).toString());
-                            restorePath.getMissingBlocks().addAll(version.getBlocks().stream().map(b -> new RestoreBlockData(new BlockMetaDataId(b), RestoreType.RESTORE)).toList());
+                            restorePath.getMissingBlocks().addAll(version.getBlocks().stream().map(b -> new RestoreBlockData(b, RestoreType.RESTORE)).toList());
                             return restorePath;
                         });
                 assertThat(expectedRestorePath).isPresent();
@@ -191,8 +190,8 @@ class RestorationIntegrationTest extends BaseSingleApplicationIntegrationTest {
                 assertThat(persistedRestorePath.getId()).isNotNull();
                 assertThat(persistedRestorePath.getPath()).isEqualTo(expectedRestorePath.get().getPath());
                 assertThat(persistedRestorePath.getPathVersion().getId()).isEqualTo(expectedRestorePath.get().getPathVersion().getId());
-                assertThat(persistedRestorePath.getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaDataId().getBlockMetaData().getId()).toList())
-                        .containsExactlyInAnyOrderElementsOf(expectedRestorePath.get().getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaDataId().getBlockMetaData().getId()).toList());
+                assertThat(persistedRestorePath.getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaData().getId()).toList())
+                        .containsExactlyInAnyOrderElementsOf(expectedRestorePath.get().getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaData().getId()).toList());
             }
         });
     }

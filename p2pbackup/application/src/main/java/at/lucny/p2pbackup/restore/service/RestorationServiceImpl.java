@@ -104,8 +104,7 @@ public class RestorationServiceImpl implements RestorationService {
             RestorePath restorePath = new RestorePath(pathVersion, targetDir.resolve(pathData.getPath()).toString());
 
             for (BlockMetaData blockMetaData : pathVersion.getBlocks()) {
-                BlockMetaDataId bmdId = new BlockMetaDataId(blockMetaData);
-                RestoreBlockData restoreBlockData = this.restoreBlockDataRepository.findById(bmdId).orElse(this.restoreBlockDataRepository.save(new RestoreBlockData(new BlockMetaDataId(blockMetaData), RestoreType.RESTORE)));
+                RestoreBlockData restoreBlockData = this.restoreBlockDataRepository.findByBlockMetaDataId(blockMetaData.getId()).orElse(this.restoreBlockDataRepository.save(new RestoreBlockData(blockMetaData, RestoreType.RESTORE)));
                 restorePath.getMissingBlocks().add(restoreBlockData);
             }
             this.restorePathRepository.save(restorePath);
@@ -200,7 +199,7 @@ public class RestorationServiceImpl implements RestorationService {
         if (!missingBlocks.isEmpty()) {
             new TransactionTemplate(this.txManager).executeWithoutResult(status -> {
                 for (BlockMetaData missingBlock : missingBlocks) {
-                    restorePath.getMissingBlocks().add(this.restoreBlockDataRepository.save(new RestoreBlockData(new BlockMetaDataId(missingBlock), RestoreType.RESTORE)));
+                    restorePath.getMissingBlocks().add(this.restoreBlockDataRepository.save(new RestoreBlockData(missingBlock, RestoreType.RESTORE)));
                 }
                 this.restorePathRepository.save(restorePath);
             });
@@ -257,11 +256,11 @@ public class RestorationServiceImpl implements RestorationService {
         if (this.restorationStorageService.loadFromLocalStorage(blockId).isPresent()) {
             new TransactionTemplate(this.txManager).executeWithoutResult(status -> {
                 // cleanup restoreBlockData if needed
-                Optional<RestoreBlockData> restoreBlockDataOptional = this.restoreBlockDataRepository.findById(new BlockMetaDataId(block));
+                Optional<RestoreBlockData> restoreBlockDataOptional = this.restoreBlockDataRepository.findByBlockMetaDataId(block.getId());
                 if (restoreBlockDataOptional.isPresent()) {
                     List<RestorePath> restorePaths = this.restorePathRepository.findByRestoreBlockData(restoreBlockDataOptional.get());
                     for (RestorePath path : restorePaths) {
-                        path.getMissingBlocks().removeIf(b -> b.getBlockMetaDataId().getBlockMetaData().getId().equals(block.getId()));
+                        path.getMissingBlocks().removeIf(b -> b.getBlockMetaData().getId().equals(block.getId()));
                     }
                     this.restoreBlockDataRepository.delete(restoreBlockDataOptional.get());
                 }
@@ -309,7 +308,7 @@ public class RestorationServiceImpl implements RestorationService {
 
         // cleanup restoreBlockData if needed
         BlockMetaData bmd = this.blockMetaDataRepository.getById(blockId);
-        Optional<RestoreBlockData> restoreBlockDataOptional = this.restoreBlockDataRepository.findById(new BlockMetaDataId(bmd));
+        Optional<RestoreBlockData> restoreBlockDataOptional = this.restoreBlockDataRepository.findByBlockMetaDataId(blockId);
         if (restoreBlockDataOptional.isPresent()) {
             RestoreBlockData restoreBlockData = restoreBlockDataOptional.get();
             LOGGER.debug("block {} has restoration-type {}", blockId, restoreBlockData.getType());
@@ -318,7 +317,7 @@ public class RestorationServiceImpl implements RestorationService {
                 this.restorationStorageService.saveInLocalStorage(blockId, data.duplicate());
                 List<RestorePath> restorePaths = this.restorePathRepository.findByRestoreBlockData(restoreBlockData);
                 for (RestorePath path : restorePaths) {
-                    path.getMissingBlocks().removeIf(b -> b.getBlockMetaDataId().getBlockMetaData().getId().equals(bmd.getId()));
+                    path.getMissingBlocks().removeIf(b -> b.getBlockMetaData().getId().equals(bmd.getId()));
                 }
             }
             this.restoreBlockDataRepository.delete(restoreBlockData);

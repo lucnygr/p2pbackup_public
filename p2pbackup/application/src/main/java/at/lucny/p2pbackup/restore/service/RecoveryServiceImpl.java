@@ -221,7 +221,7 @@ public class RecoveryServiceImpl implements RecoveryService {
 
         this.configuration.setProperty(ConfigurationConstants.PROPERTY_RECOVERY_STATE, RecoveryState.RECOVER_DATA);
 
-        // todo delete all?
+        // TODO delete all?
         for (RecoverBackupIndex unusedIndex : this.recoverBackupIndexRepository.findByIdNot(idOfBackupIndex)) {
             this.recoverBackupIndexRepository.delete(unusedIndex);
         }
@@ -255,10 +255,9 @@ public class RecoveryServiceImpl implements RecoveryService {
     }
 
     private RestoreBlockData createOrUpdateRestoreBlockData(BlockMetaData bmd, RestoreType restoreType) {
-        BlockMetaDataId bmdId = new BlockMetaDataId(bmd);
-        Optional<RestoreBlockData> restoreBlockDataOptional = this.restoreBlockDataRepository.findById(bmdId);
+        Optional<RestoreBlockData> restoreBlockDataOptional = this.restoreBlockDataRepository.findByBlockMetaDataId(bmd.getId());
         if (restoreBlockDataOptional.isEmpty()) {
-            return this.restoreBlockDataRepository.save(new RestoreBlockData(bmdId, restoreType));
+            return this.restoreBlockDataRepository.save(new RestoreBlockData(bmd, restoreType));
         } else if (restoreType.ordinal() > restoreBlockDataOptional.get().getType().ordinal()) { // only "upgrade" the restore type
             restoreBlockDataOptional.get().setType(restoreType);
         }
@@ -273,8 +272,7 @@ public class RecoveryServiceImpl implements RecoveryService {
         // is the block an index-block?
         if (blockId.startsWith(BackupConstants.BACKUP_INDEX_BLOCK_PREFIX)) {
             LOGGER.debug("block {} is an index-block", blockId);
-            BlockMetaData bmd = this.createOrUpdateBlockMetaData(userId, blockId, null);
-            this.restoreBlockDataRepository.deleteAllById(Collections.singletonList(new BlockMetaDataId(bmd)));
+            this.restoreBlockDataRepository.deleteByBlockMetaDataId(blockId);
             LOGGER.trace("end recoverMetaData: return false");
             return false;
         }
@@ -332,7 +330,7 @@ public class RecoveryServiceImpl implements RecoveryService {
         pathData.getVersions().add(version);
         this.pathDataRepository.save(pathData);
 
-        Optional<RestoreBlockData> restoreBlockDataOptional = this.restoreBlockDataRepository.findById(new BlockMetaDataId(this.blockMetaDataRepository.getById(blockId)));
+        Optional<RestoreBlockData> restoreBlockDataOptional = this.restoreBlockDataRepository.findByBlockMetaDataId(blockId);
         if (restoreBlockDataOptional.isPresent()) {
             // we only need to request data for not deleted files
             if (Boolean.FALSE.equals(version.getDeleted())) {
