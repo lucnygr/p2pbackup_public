@@ -88,12 +88,15 @@ public class DistributionServiceImpl implements DistributionService {
 
     @Override
     public void distributeBlocks() {
-        LOGGER.info("start to distribute blocks to other users");
+        LOGGER.trace("begin distributeBlocks()");
+
+        long totalNrOfCloudUploads = this.cloudUploadRepository.countByShareUrlIsNotNull();
 
         Set<CloudUpload> cloudUploadsToDelete = new HashSet<>();
         // try to distribute at maximum 10000 blocks for this iteration
         List<String> cloudUploadIds = this.cloudUploadRepository.findIdByShareUrlIsNotNull(PageRequest.of(0, 10000)).getContent();
         List<List<String>> partitionedCloudUploadIds = Lists.partition(cloudUploadIds, 100);
+        long nrOfProcessedUploads = 0;
 
         for (List<String> nextCloudUploadIds : partitionedCloudUploadIds) {
             List<CloudUpload> cloudUploads = this.cloudUploadRepository.findAllById(nextCloudUploadIds);
@@ -109,15 +112,26 @@ public class DistributionServiceImpl implements DistributionService {
                 }
 
                 this.distributeBlock(cloudUpload, bmd);
+
+                nrOfProcessedUploads++;
+                if (nrOfProcessedUploads % 100 == 0) {
+                    LOGGER.info("processed {}/{} entries for distribution", nrOfProcessedUploads, totalNrOfCloudUploads);
+                }
             }
         }
 
-        LOGGER.info("deleting all cloudUploads with enough replicas");
-        for (CloudUpload cloudUpload : cloudUploadsToDelete) {
-            this.cloudUploadService.removeCloudUpload(cloudUpload);
+        if (nrOfProcessedUploads > 0) {
+            LOGGER.info("processed {}/{} entries for distribution", nrOfProcessedUploads, totalNrOfCloudUploads);
         }
 
-        LOGGER.info("finished distributing blocks to other users");
+        if (!CollectionUtils.isEmpty(cloudUploadsToDelete)) {
+            LOGGER.info("deleting {} cloudUploads with enough replicas", cloudUploadsToDelete.size());
+            for (CloudUpload cloudUpload : cloudUploadsToDelete) {
+                this.cloudUploadService.removeCloudUpload(cloudUpload);
+            }
+        }
+
+        LOGGER.trace("end distributeBlocks");
     }
 
     /**
@@ -204,7 +218,7 @@ public class DistributionServiceImpl implements DistributionService {
 
     @Override
     public void verifyEnoughReplicas() {
-        LOGGER.trace("verifyEnoughReplicas()");
+        LOGGER.trace("begin verifyEnoughReplicas()");
 
         LOGGER.info("verify if there are enough replicas of each block");
 

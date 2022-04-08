@@ -37,9 +37,9 @@ public class CloudUploadAgent {
         if (this.runningTask == null) {
             this.runningTask = this.taskExecutor.submit(() -> {
                 try {
-                    LOGGER.info("upload all local blocks");
+                    LOGGER.debug("upload all local blocks");
                     this.cloudUploadService.uploadLocalBackupBlocks();
-                    LOGGER.info("finished uploading all local blocks");
+                    LOGGER.debug("finished uploading all local blocks");
                 } catch (Exception e) {
                     LOGGER.warn("unable to restore blocks", e);
                 } finally {

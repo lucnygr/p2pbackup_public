@@ -100,7 +100,7 @@ public class UserServiceImpl implements UserService {
             String yesNo = null;
             Console console = System.console();
             if (console != null) {
-                yesNo = console.readLine("Are the fingerprints\nSHA-256 fingerprint {}\nSHA3-512 fingerprint {}\n for the certificate of user {} correct? (Y/N):", sha256Fingerprint, sha512Fingerprint, userId);
+                yesNo = console.readLine("Are the fingerprints\nSHA-256 fingerprint %s\nSHA3-512 fingerprint %s\n for the certificate of user %s correct? (Y/N):", sha256Fingerprint, sha512Fingerprint, userId);
             } else {
                 System.out.println("Are the fingerprints\nSHA-256 fingerprint " + sha256Fingerprint + "\nSHA3-512 fingerprint " + sha512Fingerprint + "\n for the certificate of user " + userId + " correct? (Y/N):");
                 Scanner scanner = new Scanner(System.in);

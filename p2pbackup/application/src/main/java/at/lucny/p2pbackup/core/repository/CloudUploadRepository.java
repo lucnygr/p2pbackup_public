@@ -10,6 +10,10 @@ import java.util.Optional;
 
 public interface CloudUploadRepository extends JpaRepository<CloudUpload, String> {
 
+    long countByShareUrlIsNull();
+
+    long countByShareUrlIsNotNull();
+
     Page<CloudUpload> findAllByShareUrlIsNull(Pageable pageRequest);
 
     Page<CloudUpload> findAllByShareUrlIsNotNull(Pageable pageRequest);

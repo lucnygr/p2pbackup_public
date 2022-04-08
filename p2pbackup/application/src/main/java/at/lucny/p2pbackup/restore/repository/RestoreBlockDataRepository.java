@@ -13,7 +13,7 @@ import java.util.Optional;
 
 public interface RestoreBlockDataRepository extends JpaRepository<RestoreBlockData, String> {
 
-    @Query("SELECT rb.blockMetaData.id FROM RestoreBlockData rb " +
+    @Query("SELECT DISTINCT rb.blockMetaData.id FROM RestoreBlockData rb " +
             "INNER JOIN rb.blockMetaData bmd " +
             "INNER JOIN bmd.locations l " +
             "WHERE l.userId IN :userIds AND rb.type in (:types)")

@@ -72,17 +72,23 @@ public class CloudUploadServiceImpl implements CloudUploadService {
     @Override
     public void uploadLocalBackupBlocks() {
         LOGGER.trace("begin uploadLocalBackupBlocks()");
-        LOGGER.info("uploading available blocks in local-storage to cloud-storage");
 
         if (CollectionUtils.isEmpty(this.cloudStorageServiceProvider.getInitializedCloudStorageServices())) {
             LOGGER.warn("no cloud storage service configured");
             return;
         }
 
+        LOGGER.debug("uploading available blocks in local-storage to cloud-storage");
+        long totalNrOfCloudUploads = this.cloudUploadRepository.countByShareUrlIsNull();
+        if(totalNrOfCloudUploads > 0) {
+            LOGGER.info("prepare to upload up to {} blocks", totalNrOfCloudUploads);
+        }
+
         // load 100 cloud-uploads per iteration and upload them. they are no longer found by the sql-query, so start again with 100 uploads from the beginning
         Pageable pageRequest = PageRequest.of(0, 100, Sort.Direction.ASC, "id");
         Page<CloudUpload> backupBlocks;
-        long nrOfUploads = 0;
+
+        long nrOfProcessedUploads = 0;
 
         do {
             backupBlocks = this.cloudUploadRepository.findAllByShareUrlIsNull(pageRequest);
@@ -100,22 +106,24 @@ public class CloudUploadServiceImpl implements CloudUploadService {
                     localBackupBlock.setProviderId(cloudStorageService.getId());
                     localBackupBlock.setShareUrl(publicUrl);
                     this.cloudUploadRepository.save(localBackupBlock);
-                    nrOfUploads++;
                 } else {
                     LOGGER.warn("block {} should be distributed but is not available, request from other peers via distribution service", localBackupBlock.getBlockMetaData().getId());
                     uploadsToDelete.add(localBackupBlock);
+                }
+
+                nrOfProcessedUploads++;
+                if (nrOfProcessedUploads % 100 == 0) {
+                    LOGGER.info("processed {}/{} cloud-upload-entries", nrOfProcessedUploads, totalNrOfCloudUploads);
                 }
             }
             if (!CollectionUtils.isEmpty(uploadsToDelete)) {
                 this.cloudUploadRepository.deleteAllInBatch(uploadsToDelete);
             }
-
-            if (nrOfUploads % 500 == 0) {
-                LOGGER.info("processed {} cloud-upload-entries", nrOfUploads);
-            }
         } while (backupBlocks.hasNext());
 
-        LOGGER.info("finished uploading {} available blocks to cloud-storage", nrOfUploads);
+        if (nrOfProcessedUploads > 0) {
+            LOGGER.info("processed {}/{} cloud-upload-entries", nrOfProcessedUploads, totalNrOfCloudUploads);
+        }
         LOGGER.trace("end uploadLocalBackupBlocks");
     }
 

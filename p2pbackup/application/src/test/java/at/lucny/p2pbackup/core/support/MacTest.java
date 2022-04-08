@@ -11,6 +11,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.SecureRandom;
 
+import static at.lucny.p2pbackup.backup.service.FixedSizeChunkerServiceImpl.BLOCK_SIZE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(MockitoExtension.class)
@@ -24,7 +25,7 @@ class MacTest {
         random.nextBytes(key);
         Mac mac = HmacUtils.getInitializedMac(CryptoConstants.HMAC_BLOCK_ALGORITHM, key);
 
-        byte[] outData = new byte[1024 * 100 + 16];
+        byte[] outData = new byte[BLOCK_SIZE + 16];
         random.nextBytes(outData);
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         MacOutputStream mos = new MacOutputStream(bos, mac);
@@ -33,7 +34,7 @@ class MacTest {
 
         mac.reset();
         MacInputStream mis = new MacInputStream(new ByteArrayInputStream(bos.toByteArray()), mac);
-        byte[] inData = new byte[1024 * 100 + 16];
+        byte[] inData = new byte[BLOCK_SIZE + 16];
         mis.read(inData);
         byte[] macFromInput = mac.doFinal();
 

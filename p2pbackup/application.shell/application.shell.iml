@@ -148,18 +148,18 @@
     <orderEntry type="library" name="Maven: com.google.oauth-client:google-oauth-client-jetty:1.32.1" level="project" />
     <orderEntry type="library" name="Maven: com.google.oauth-client:google-oauth-client-java6:1.32.1" level="project" />
     <orderEntry type="library" name="Maven: com.google.apis:google-api-services-drive:v3-rev20211107-1.32.1" level="project" />
-    <orderEntry type="library" name="Maven: org.springframework.shell:spring-shell-standard:2.0.0.RELEASE" level="project" />
-    <orderEntry type="library" name="Maven: org.springframework.shell:spring-shell-starter:2.0.0.RELEASE" level="project" />
-    <orderEntry type="library" name="Maven: org.springframework.shell:spring-shell-core:2.0.0.RELEASE" level="project" />
+    <orderEntry type="library" name="Maven: org.springframework.shell:spring-shell-standard:2.0.1.RELEASE" level="project" />
+    <orderEntry type="library" name="Maven: org.springframework.shell:spring-shell-starter:2.0.1.RELEASE" level="project" />
+    <orderEntry type="library" name="Maven: org.springframework.shell:spring-shell-core:2.0.1.RELEASE" level="project" />
     <orderEntry type="library" name="Maven: org.springframework.boot:spring-boot-starter-validation:2.6.6" level="project" />
     <orderEntry type="library" name="Maven: org.apache.tomcat.embed:tomcat-embed-el:9.0.60" level="project" />
     <orderEntry type="library" name="Maven: org.jline:jline:3.4.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.jline:jline-terminal-jna:3.4.0" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: net.java.dev.jna:jna:4.2.2" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Maven: org.jline:jline-terminal:3.4.0" level="project" />
-    <orderEntry type="library" name="Maven: org.springframework.shell:spring-shell-standard-commands:2.0.0.RELEASE" level="project" />
-    <orderEntry type="library" name="Maven: org.springframework.shell:spring-shell-shell1-adapter:2.0.0.RELEASE" level="project" />
-    <orderEntry type="library" name="Maven: org.springframework.shell:spring-shell-jcommander-adapter:2.0.0.RELEASE" level="project" />
-    <orderEntry type="library" name="Maven: org.springframework.shell:spring-shell-table:2.0.0.RELEASE" level="project" />
+    <orderEntry type="library" name="Maven: org.springframework.shell:spring-shell-standard-commands:2.0.1.RELEASE" level="project" />
+    <orderEntry type="library" name="Maven: org.springframework.shell:spring-shell-shell1-adapter:2.0.1.RELEASE" level="project" />
+    <orderEntry type="library" name="Maven: org.springframework.shell:spring-shell-jcommander-adapter:2.0.1.RELEASE" level="project" />
+    <orderEntry type="library" name="Maven: org.springframework.shell:spring-shell-table:2.0.1.RELEASE" level="project" />
   </component>
 </module>

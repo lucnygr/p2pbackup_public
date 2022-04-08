@@ -49,8 +49,8 @@
     <orderEntry type="library" name="Maven: org.springframework:spring-core:5.3.18" level="project" />
     <orderEntry type="library" name="Maven: org.springframework:spring-jcl:5.3.18" level="project" />
     <orderEntry type="library" name="Maven: org.springframework:spring-expression:5.3.18" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="Maven: org.springframework.shell:spring-shell-standard:2.0.0.RELEASE" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="Maven: org.springframework.shell:spring-shell-core:2.0.0.RELEASE" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: org.springframework.shell:spring-shell-standard:2.0.1.RELEASE" level="project" />
+    <orderEntry type="library" scope="PROVIDED" name="Maven: org.springframework.shell:spring-shell-core:2.0.1.RELEASE" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.springframework.boot:spring-boot-starter:2.6.6" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.springframework.boot:spring-boot-autoconfigure:2.6.6" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.springframework.boot:spring-boot-starter-logging:2.6.6" level="project" />

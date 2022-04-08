@@ -176,7 +176,7 @@ public class RecoveryServiceImpl implements RecoveryService {
         String directory = null;
         Console console = System.console();
         if (console != null) {
-            directory = console.readLine("Please input the destination-directory for the root-directory {}:", name);
+            directory = console.readLine("Please input the destination-directory for the root-directory %s:", name);
         } else {
             System.out.println("Please input the destination-directory for the root-directory " + name + ":");
             Scanner scanner = new Scanner(System.in);

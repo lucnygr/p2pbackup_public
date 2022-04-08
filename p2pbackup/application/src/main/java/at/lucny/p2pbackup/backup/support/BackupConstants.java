@@ -5,6 +5,8 @@ public final class BackupConstants {
     private BackupConstants() {
     }
 
+    public static final int ONE_KILOBYTE = 1024;
+
     public static final long NR_OF_REPLICAS = 2;
 
     /**

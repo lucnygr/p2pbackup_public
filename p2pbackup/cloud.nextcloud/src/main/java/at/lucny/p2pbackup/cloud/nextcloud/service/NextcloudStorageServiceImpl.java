@@ -3,10 +3,12 @@ package at.lucny.p2pbackup.cloud.nextcloud.service;
 import at.lucny.p2pbackup.application.support.StopApplicationEvent;
 import at.lucny.p2pbackup.cloud.CloudStorageService;
 import org.aarboard.nextcloud.api.NextcloudConnector;
+import org.aarboard.nextcloud.api.exception.NextcloudApiException;
 import org.aarboard.nextcloud.api.filesharing.Share;
 import org.aarboard.nextcloud.api.filesharing.SharePermissions;
 import org.aarboard.nextcloud.api.filesharing.ShareType;
 import org.apache.commons.configuration2.Configuration;
+import org.apache.http.client.HttpResponseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
@@ -167,7 +169,16 @@ public class NextcloudStorageServiceImpl implements CloudStorageService {
         LOGGER.trace("begin share(filename={})", filename);
         this.checkInitialized();
         String remoteFilename = this.getRemotePath(filename);
-        this.connector.removeFile(remoteFilename);
+        try {
+            this.connector.removeFile(remoteFilename);
+        } catch (NextcloudApiException e) {
+            if (e.getCause() instanceof HttpResponseException ex) {
+                if (ex.getStatusCode() == 404) { // ignore 404 because this means the file as already deleted
+                    return;
+                }
+                throw e;
+            }
+        }
         LOGGER.trace("end delete");
     }
 }

@@ -72,7 +72,7 @@ public class ApplicationCommands implements Quit.Command {
         this.distributionAgent.distribute();
     }
 
-    @ShellMethod("uploads blocks to the cloud")
+    @ShellMethod("uploads blocks to the cloud and to other peers")
     public void uploadBlocks() {
         this.cloudUploadAgent.upload();
         this.distributionAgent.distribute();

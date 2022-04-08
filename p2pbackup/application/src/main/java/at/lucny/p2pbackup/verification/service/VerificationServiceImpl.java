@@ -87,7 +87,7 @@ public class VerificationServiceImpl implements VerificationService {
 
     @Override
     public void verifyBlocks() {
-        LOGGER.info("start to verify blocks of other users");
+        LOGGER.trace("start verifyBlocks()");
 
         List<String> onlineUsers = this.clientService.getOnlineClients().stream().map(NettyClient::getUser).map(User::getId).toList();
 
@@ -95,6 +95,8 @@ public class VerificationServiceImpl implements VerificationService {
             LOGGER.info("no other users online");
             return;
         }
+
+        LOGGER.info("start to verify blocks of other users");
 
         LOGGER.debug("start to delete blocks from unreliable users");
 
@@ -125,6 +127,8 @@ public class VerificationServiceImpl implements VerificationService {
         }
 
         LOGGER.info("finished verifying blocks of other users");
+
+        LOGGER.trace("end verifyBlocks");
     }
 
     /**
