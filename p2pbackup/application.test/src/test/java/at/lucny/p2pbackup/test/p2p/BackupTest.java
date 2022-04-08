@@ -37,7 +37,8 @@ class BackupTest extends BaseP2PTest {
 
     @Test
     void testBackupToOtherPeers() throws IOException {
-        this.startContextForUser1And2();
+        this.startContextForUser1();
+        this.startContextForUser2();
         this.copyFileToUserDataDir("user1", "testfile1.txt");
 
         P2PBackupProperties p2PBackupProperties1 = ctxUser1.getBean(P2PBackupProperties.class);
@@ -104,7 +105,8 @@ class BackupTest extends BaseP2PTest {
 
     @Test
     void testBackupToOtherPeers_requestBlockFromOtherPeerForRedistribution() throws IOException {
-        this.startContextForUser1And2();
+        this.startContextForUser1();
+        this.startContextForUser2();
         this.startContextForUser3();
         this.copyFileToUserDataDir("user1", "testfile1.txt");
 

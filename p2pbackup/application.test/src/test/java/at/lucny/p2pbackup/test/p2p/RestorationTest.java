@@ -34,7 +34,8 @@ class RestorationTest extends BaseP2PTest {
     private byte[] contentOfBigFile;
 
     private void setupData() throws Exception {
-        this.startContextForUser1And2();
+        this.startContextForUser1();
+        this.startContextForUser2();
         this.startContextForUser3();
         this.copyFileToUserDataDir("user1", "testfile1.txt");
         this.copyFileToUserDataDir("user1", "testfile2.txt");

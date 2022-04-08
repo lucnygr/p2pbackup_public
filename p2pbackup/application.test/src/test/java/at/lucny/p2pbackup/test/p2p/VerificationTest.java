@@ -36,7 +36,8 @@ class VerificationTest extends BaseP2PTest {
 
     @BeforeEach
     void beforeEach() {
-        this.startContextForUser1And2();
+        this.startContextForUser1();
+        this.startContextForUser2();
     }
 
     @Test
