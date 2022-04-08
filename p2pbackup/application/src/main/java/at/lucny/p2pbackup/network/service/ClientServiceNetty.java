@@ -130,7 +130,8 @@ public class ClientServiceNetty extends AbstractNettyService implements ClientSe
         return userIds.stream().map(this::getClient).filter(this::isOnline).toList();
     }
 
-    private boolean isOnline(NettyClient client) {
+    @Override
+    public boolean isOnline(NettyClient client) {
         if (client.isDisconnected()) {
             if (client.connect()) {
                 LOGGER.trace("connected to {}", client.getUser().getId());

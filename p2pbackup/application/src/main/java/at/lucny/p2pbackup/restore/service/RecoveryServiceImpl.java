@@ -95,7 +95,7 @@ public class RecoveryServiceImpl implements RecoveryService {
 
         List<NettyClient> clients = this.clientService.getClients();
         for (NettyClient client : clients) {
-            if (client.isConnected()) {
+            if (this.clientService.isOnline(client)) {
                 LOGGER.debug("sending request to recover backup-index to {}", client.getUser().getId());
                 var request = at.lucny.p2pbackup.network.dto.RecoverBackupIndex.newBuilder().build();
                 ProtocolMessage message = ProtocolMessage.newBuilder().setRecoverBackupIndex(request).build();
