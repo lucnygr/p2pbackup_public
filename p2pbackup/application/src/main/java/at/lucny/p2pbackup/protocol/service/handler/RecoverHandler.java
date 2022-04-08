@@ -2,7 +2,6 @@ package at.lucny.p2pbackup.protocol.service.handler;
 
 import at.lucny.p2pbackup.backup.support.BackupConstants;
 import at.lucny.p2pbackup.core.service.BlockEncryptionService;
-import at.lucny.p2pbackup.core.service.ByteBufferPoolService;
 import at.lucny.p2pbackup.localstorage.service.LocalStorageService;
 import at.lucny.p2pbackup.network.dto.ProtocolMessage;
 import at.lucny.p2pbackup.network.dto.ProtocolMessageWrapper;
@@ -23,7 +22,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,8 +39,6 @@ public class RecoverHandler extends MessageToMessageDecoder<ProtocolMessageWrapp
 
     private final LocalStorageService localStorageService;
 
-    private final ByteBufferPoolService byteBufferPoolService;
-
     private final BlockEncryptionService blockEncryptionService;
 
     private final VerificationService verificationService;
@@ -51,9 +47,8 @@ public class RecoverHandler extends MessageToMessageDecoder<ProtocolMessageWrapp
 
     private final RecoveryService recoveryService;
 
-    public RecoverHandler(LocalStorageService localStorageService, ByteBufferPoolService byteBufferPoolService, BlockEncryptionService blockEncryptionService, VerificationService verificationService, VerificationValueService verificationValueService, RecoveryService recoveryService) {
+    public RecoverHandler(LocalStorageService localStorageService, BlockEncryptionService blockEncryptionService, VerificationService verificationService, VerificationValueService verificationValueService, RecoveryService recoveryService) {
         this.localStorageService = localStorageService;
-        this.byteBufferPoolService = byteBufferPoolService;
         this.blockEncryptionService = blockEncryptionService;
         this.verificationService = verificationService;
         this.verificationValueService = verificationValueService;
@@ -98,24 +93,18 @@ public class RecoverHandler extends MessageToMessageDecoder<ProtocolMessageWrapp
         LOGGER.debug("recovering backup-index-block {} from user {}", recoverBackupIndexResponse.getLatestBackupIndexId(), userId);
 
         if (!recoverBackupIndexResponse.getLatestBackupIndex().isEmpty()) {
-            Integer key = this.byteBufferPoolService.calculateBufferSize(recoverBackupIndexResponse.getLatestBackupIndex().size());
-            ByteBuffer decryptedDataBuffer = this.byteBufferPoolService.borrowObject(key);
-
             try {
-                // decrypt the block-content, check integrity and write it into the decryptedDataBuffer
-                this.blockEncryptionService.decrypt(recoverBackupIndexResponse.getLatestBackupIndex().asReadOnlyByteBuffer(), recoverBackupIndexResponse.getLatestBackupIndexId().getBytes(StandardCharsets.UTF_8), decryptedDataBuffer);
+                this.blockEncryptionService.decrypt(recoverBackupIndexResponse.getLatestBackupIndex().asReadOnlyByteBuffer(), recoverBackupIndexResponse.getLatestBackupIndexId().getBytes(StandardCharsets.UTF_8), plainDataBuffer -> {
+                    // save found version of backupIndex
+                    this.recoveryService.recoverBackupIndex(userId, plainDataBuffer.duplicate());
 
-                // save found version of backupIndex
-                this.recoveryService.recoverBackupIndex(userId, decryptedDataBuffer);
-
-                // mark location of backupIndex as verified and generate verification values for block
-                this.verificationService.markLocationVerified(recoverBackupIndexResponse.getLatestBackupIndexId(), userId);
-                this.verificationValueService.ensureVerificationValues(recoverBackupIndexResponse.getLatestBackupIndexId(), recoverBackupIndexResponse.getLatestBackupIndex().asReadOnlyByteBuffer());
-            } catch (IllegalStateException e) {
+                    // mark location of backupIndex as verified and generate verification values for block
+                    this.verificationService.markLocationVerified(recoverBackupIndexResponse.getLatestBackupIndexId(), userId);
+                    this.verificationValueService.ensureVerificationValues(recoverBackupIndexResponse.getLatestBackupIndexId(), recoverBackupIndexResponse.getLatestBackupIndex().asReadOnlyByteBuffer());
+                });
+            } catch (RuntimeException e) {
                 LOGGER.warn("unable to restore backup-index-block {} from user {} due to exception", recoverBackupIndexResponse.getLatestBackupIndexId(), userId, e);
                 this.verificationService.markLocationUnverified(recoverBackupIndexResponse.getLatestBackupIndexId(), userId);
-            } finally {
-                this.byteBufferPoolService.returnObject(key, decryptedDataBuffer);
             }
         } else {
             LOGGER.info("user {} does not save a backup-index", userId);

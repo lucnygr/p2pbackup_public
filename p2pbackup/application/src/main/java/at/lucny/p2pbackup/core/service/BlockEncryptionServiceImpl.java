@@ -10,6 +10,7 @@ import java.nio.ByteBuffer;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.function.Consumer;
 
 @Service
 @Validated
@@ -27,10 +28,12 @@ public class BlockEncryptionServiceImpl implements BlockEncryptionService {
 
     private final SecretKey secretKey;
 
+    private final ByteBufferPoolService byteBufferPoolService;
 
-    public BlockEncryptionServiceImpl(CryptoUtils cryptoUtils, CryptoService cryptoService) {
+    public BlockEncryptionServiceImpl(CryptoUtils cryptoUtils, CryptoService cryptoService, ByteBufferPoolService byteBufferPoolService) {
         this.cryptoUtils = cryptoUtils;
         this.secretKey = cryptoService.getSecretKeyGenerator().generateAES(SALT_BLOCK_ENCRYPTION);
+        this.byteBufferPoolService = byteBufferPoolService;
     }
 
     private void checkBufferSize(ByteBuffer readBuffer, ByteBuffer writeBuffer) {
@@ -63,6 +66,20 @@ public class BlockEncryptionServiceImpl implements BlockEncryptionService {
     }
 
     @Override
+    public void encrypt(ByteBuffer plainData, byte[] aead, Consumer<ByteBuffer> consumer) {
+        Integer key = this.byteBufferPoolService.calculateBufferSize(plainData.remaining());
+        ByteBuffer encryptedDataBuffer = this.byteBufferPoolService.borrowObject(key);
+
+        try {
+            // encrypt the block-content and write it into the encryptedDataBuffer
+            this.encrypt(plainData.duplicate(), aead, encryptedDataBuffer);
+            consumer.accept(encryptedDataBuffer);
+        } finally {
+            this.byteBufferPoolService.returnObject(key, encryptedDataBuffer);
+        }
+    }
+
+    @Override
     public void decrypt(ByteBuffer encryptedData, byte[] aead, ByteBuffer plainData) {
         this.checkBufferSize(encryptedData, plainData);
 
@@ -80,6 +97,20 @@ public class BlockEncryptionServiceImpl implements BlockEncryptionService {
             plainData.flip();
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException | IllegalBlockSizeException | BadPaddingException | ShortBufferException e) {
             throw new IllegalStateException(e);
+        }
+    }
+
+    @Override
+    public void decrypt(ByteBuffer encryptedData, byte[] aead, Consumer<ByteBuffer> consumer) {
+        Integer key = this.byteBufferPoolService.calculateBufferSize(encryptedData.remaining());
+        ByteBuffer plainData = this.byteBufferPoolService.borrowObject(key);
+
+        try {
+            // encrypt the block-content and write it into the encryptedDataBuffer
+            this.decrypt(encryptedData.duplicate(), aead, plainData);
+            consumer.accept(plainData);
+        } finally {
+            this.byteBufferPoolService.returnObject(key, plainData);
         }
     }
 }

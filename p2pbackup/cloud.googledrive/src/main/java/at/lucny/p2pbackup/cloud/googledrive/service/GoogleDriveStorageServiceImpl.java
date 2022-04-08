@@ -116,9 +116,7 @@ public class GoogleDriveStorageServiceImpl implements CloudStorageService {
                 HTTP_TRANSPORT, GsonFactory.getDefaultInstance(), clientSecrets, SCOPES)
                 .setDataStoreFactory(fileDataStoreFactory)
                 .setAccessType("offline")
-                //.setCredentialDataStore(fileDataStoreFactory.getDataStore("1"))
                 .build();
-        //LocalServerReceiver receiver = new LocalServerReceiver.Builder().setPort(8888).build();
         return new AuthorizationCodeInstalledApp(flow, new LocalServerReceiver()).authorize(this.p2PBackupProperties.getUser());
     }
 

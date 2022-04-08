@@ -1,7 +1,6 @@
 package at.lucny.p2pbackup.protocol.service.handler;
 
 import at.lucny.p2pbackup.core.service.BlockEncryptionService;
-import at.lucny.p2pbackup.core.service.ByteBufferPoolService;
 import at.lucny.p2pbackup.localstorage.dto.LocalStorageEntry;
 import at.lucny.p2pbackup.localstorage.service.LocalStorageService;
 import at.lucny.p2pbackup.network.dto.*;
@@ -22,7 +21,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -38,8 +36,6 @@ public class RestoreHandler extends MessageToMessageDecoder<ProtocolMessageWrapp
 
     private final LocalStorageService localStorageService;
 
-    private final ByteBufferPoolService byteBufferPoolService;
-
     private final BlockEncryptionService blockEncryptionService;
 
     private final VerificationService verificationService;
@@ -52,9 +48,8 @@ public class RestoreHandler extends MessageToMessageDecoder<ProtocolMessageWrapp
 
     private final RecoveryService recoveryService;
 
-    public RestoreHandler(LocalStorageService localStorageService, ByteBufferPoolService byteBufferPoolService, BlockEncryptionService blockEncryptionService, VerificationService verificationService, VerificationValueService verificationValueService, RestorationService restorationService, CloudUploadService cloudUploadService, RecoveryService recoveryService) {
+    public RestoreHandler(LocalStorageService localStorageService, BlockEncryptionService blockEncryptionService, VerificationService verificationService, VerificationValueService verificationValueService, RestorationService restorationService, CloudUploadService cloudUploadService, RecoveryService recoveryService) {
         this.localStorageService = localStorageService;
-        this.byteBufferPoolService = byteBufferPoolService;
         this.blockEncryptionService = blockEncryptionService;
         this.verificationService = verificationService;
         this.verificationValueService = verificationValueService;
@@ -103,40 +98,35 @@ public class RestoreHandler extends MessageToMessageDecoder<ProtocolMessageWrapp
     private void processRestoreBlockResponse(String userId, RestoreBlockResponse restoreBlockResponse) {
         LOGGER.debug("restoring block {} from user {} with cause {}", restoreBlockResponse.getId(), userId, restoreBlockResponse.getFor());
 
-        Integer key = this.byteBufferPoolService.calculateBufferSize(restoreBlockResponse.getData().size());
-        ByteBuffer decryptedDataBuffer = this.byteBufferPoolService.borrowObject(key);
-
         try {
-            // decrypt the block-content, check integrity and write it into the decryptedDataBuffer
-            this.blockEncryptionService.decrypt(restoreBlockResponse.getData().asReadOnlyByteBuffer(), restoreBlockResponse.getId().getBytes(StandardCharsets.UTF_8), decryptedDataBuffer);
-            // mark location as verified and generate verification values for block
-            this.verificationService.markLocationVerified(restoreBlockResponse.getId(), userId);
-            this.verificationValueService.ensureVerificationValues(restoreBlockResponse.getId(), restoreBlockResponse.getData().asReadOnlyByteBuffer());
+            this.blockEncryptionService.decrypt(restoreBlockResponse.getData().asReadOnlyByteBuffer(), restoreBlockResponse.getId().getBytes(StandardCharsets.UTF_8), plainDataBuffer -> {
+                // mark location as verified and generate verification values for block
+                this.verificationService.markLocationVerified(restoreBlockResponse.getId(), userId);
+                this.verificationValueService.ensureVerificationValues(restoreBlockResponse.getId(), restoreBlockResponse.getData().asReadOnlyByteBuffer());
 
-            switch (restoreBlockResponse.getFor()) {
-                case RESTORE -> {
-                    LOGGER.info("restoring block {}", restoreBlockResponse.getId());
-                    boolean isDataBlock = true;
-                    if (this.recoveryService.isRecoveryActive()) {
-                        isDataBlock = this.recoveryService.recoverMetaData(userId, restoreBlockResponse.getId(), decryptedDataBuffer); // try to recover metadata and save block if needed
-                    }
+                switch (restoreBlockResponse.getFor()) {
+                    case RESTORE -> {
+                        LOGGER.info("restoring block {}", restoreBlockResponse.getId());
+                        boolean isDataBlock = true;
+                        if (this.recoveryService.isRecoveryActive()) {
+                            isDataBlock = this.recoveryService.recoverMetaData(userId, restoreBlockResponse.getId(), plainDataBuffer.duplicate()); // try to recover metadata and save block if needed
+                        }
 
-                    if (isDataBlock) {
-                        this.restorationService.saveBlock(restoreBlockResponse.getId(), decryptedDataBuffer); // save block for data restoration
+                        if (isDataBlock) {
+                            this.restorationService.saveBlock(restoreBlockResponse.getId(), plainDataBuffer.duplicate()); // save block for data restoration
+                        }
                     }
+                    case REDISTRIBUTION -> {
+                        LOGGER.debug("redistribution of block {}", restoreBlockResponse.getId());
+                        LocalStorageEntry localStorageEntry = this.localStorageService.saveInLocalStorage(restoreBlockResponse.getId(), restoreBlockResponse.getData().asReadOnlyByteBuffer());
+                        this.cloudUploadService.saveCloudUpload(restoreBlockResponse.getId(), localStorageEntry.macSecret(), localStorageEntry.mac());
+                    }
+                    default -> LOGGER.trace("received block {} from user {} for {}", restoreBlockResponse.getId(), userId, restoreBlockResponse.getFor());
                 }
-                case REDISTRIBUTION -> {
-                    LOGGER.debug("redistribution of block {}", restoreBlockResponse.getId());
-                    LocalStorageEntry localStorageEntry = this.localStorageService.saveInLocalStorage(restoreBlockResponse.getId(), restoreBlockResponse.getData().asReadOnlyByteBuffer());
-                    this.cloudUploadService.saveCloudUpload(restoreBlockResponse.getId(), localStorageEntry.macSecret(), localStorageEntry.mac());
-                }
-                default -> LOGGER.trace("received block {} from user {} for {}", restoreBlockResponse.getId(), userId, restoreBlockResponse.getFor());
-            }
+            });
         } catch (IllegalStateException e) {
             LOGGER.warn("unable to restore block {} from user {} due to exception", restoreBlockResponse.getId(), userId, e);
             this.verificationService.markLocationUnverified(restoreBlockResponse.getId(), userId);
-        } finally {
-            this.byteBufferPoolService.returnObject(key, decryptedDataBuffer);
         }
     }
 

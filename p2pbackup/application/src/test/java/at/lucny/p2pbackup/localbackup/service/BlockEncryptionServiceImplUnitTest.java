@@ -1,6 +1,7 @@
 package at.lucny.p2pbackup.localbackup.service;
 
 import at.lucny.p2pbackup.core.service.BlockEncryptionServiceImpl;
+import at.lucny.p2pbackup.core.service.ByteBufferPoolService;
 import at.lucny.p2pbackup.core.service.CryptoService;
 import at.lucny.p2pbackup.core.support.CryptoUtils;
 import at.lucny.p2pbackup.core.support.SecretKeyGenerator;
@@ -13,7 +14,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import javax.crypto.AEADBadTagException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
-
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
@@ -34,13 +34,16 @@ class BlockEncryptionServiceImplUnitTest {
     @Mock
     private SecretKeyGenerator secretKeyGeneratorMock;
 
+    @Mock
+    private ByteBufferPoolService byteBufferPoolServiceMock;
+
     @BeforeEach
     void beforeEach() throws NoSuchAlgorithmException, NoSuchProviderException {
         when(this.cryptoServiceMock.getSecretKeyGenerator()).thenReturn(this.secretKeyGeneratorMock);
         SecretKey secretKey = KeyGenerator.getInstance("AES").generateKey();
         when(this.secretKeyGeneratorMock.generateAES("blockEncryption")).thenReturn(secretKey);
 
-        this.blockEncryptionService = new BlockEncryptionServiceImpl(new CryptoUtils(), this.cryptoServiceMock);
+        this.blockEncryptionService = new BlockEncryptionServiceImpl(new CryptoUtils(), this.cryptoServiceMock, this.byteBufferPoolServiceMock);
     }
 
     @Test

@@ -19,7 +19,7 @@ public interface BackupService {
      * Finds the root-directory by its logical name.
      *
      * @param name the name of the root-directory.
-     * @return the {@ink RootDirectory}-entity, otherwise an empty optional
+     * @return the {@link RootDirectory}-entity, otherwise an empty optional
      */
     @NotNull Optional<RootDirectory> getRootDirectory(@NotNull String name);
 
