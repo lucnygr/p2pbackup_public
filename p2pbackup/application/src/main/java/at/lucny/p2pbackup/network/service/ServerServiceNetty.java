@@ -59,8 +59,12 @@ public class ServerServiceNetty extends AbstractNettyService implements ServerSe
             LOGGER.info("start server on port {}", this.p2PBackupProperties.getNetwork().getPort());
             var socketChannelFuture = serverBootstrap.bind(this.p2PBackupProperties.getNetwork().getPort()).sync();
             this.socketChannel = socketChannelFuture.channel();
-        } catch (ChannelException | InterruptedException e) {
+        } catch (ChannelException e) {
             this.shutdownServer();
+            throw new IllegalStateException("Unable to start server", e);
+        } catch (InterruptedException e) {
+            this.shutdownServer();
+            Thread.currentThread().interrupt();
             throw new IllegalStateException("Unable to start server", e);
         }
 

@@ -4,6 +4,9 @@ import javax.validation.constraints.NotNull;
 
 public interface VerificationService {
 
+    /**
+     * Verifies all blocks with a verification-timeout. Blocks with to much time without a successfull verification get deleted from other users.
+     */
     void verifyBlocks();
 
     void deleteLocationFromBlock(@NotNull String blockMetaDataId, @NotNull String userId);

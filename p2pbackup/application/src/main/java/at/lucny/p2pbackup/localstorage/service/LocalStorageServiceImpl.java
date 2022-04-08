@@ -1,10 +1,7 @@
 package at.lucny.p2pbackup.localstorage.service;
 
 import at.lucny.p2pbackup.application.config.P2PBackupProperties;
-import at.lucny.p2pbackup.core.support.CryptoConstants;
-import at.lucny.p2pbackup.core.support.CryptoUtils;
-import at.lucny.p2pbackup.core.support.MacInputStream;
-import at.lucny.p2pbackup.core.support.MacOutputStream;
+import at.lucny.p2pbackup.core.support.*;
 import at.lucny.p2pbackup.localstorage.dto.LocalStorageEntry;
 import at.lucny.p2pbackup.network.dto.BackupBlock;
 import at.lucny.p2pbackup.network.dto.BackupBlockFailure;
@@ -58,6 +55,8 @@ public class LocalStorageServiceImpl implements LocalStorageService {
     private final UserRepository userRepository;
 
     private final CryptoUtils cryptoUtils;
+
+    private final FileUtils fileUtils = new FileUtils();
 
     public LocalStorageServiceImpl(P2PBackupProperties p2PBackupProperties, UserRepository userRepository, CryptoUtils cryptoUtils) {
         this.p2PBackupProperties = p2PBackupProperties;
@@ -173,55 +172,53 @@ public class LocalStorageServiceImpl implements LocalStorageService {
             return Optional.of(BackupBlockFailure.BackupBlockFailureType.USER_NOT_ALLOWED);
         }
 
-        try {
-            Mac mac = HmacUtils.getInitializedMac(CryptoConstants.HMAC_BLOCK_ALGORITHM, Base64.getDecoder().decode(backupBlock.getMacSecret()));
-            Path blockPath = this.p2PBackupProperties.getStorageDir().resolve(userId).resolve(backupBlock.getId());
-            if (Files.exists(blockPath)) {
-                try (InputStream fis = Files.newInputStream(blockPath, StandardOpenOption.READ)) {
-                    HmacUtils.updateHmac(mac, fis);
-                    String macOfBlock = Base64.getEncoder().encodeToString(mac.doFinal());
-                    if (!macOfBlock.equals(backupBlock.getMacOfBlock())) {
-                        LOGGER.debug("received backup block {} of user {} is already saved", backupBlock.getId(), userId);
-                        LOGGER.trace("end saveFromUserInLocalBackup: return {}", BackupBlockFailure.BackupBlockFailureType.BLOCK_ALREADY_SAVED_WITH_OTHER_MAC);
-                        return Optional.of(BackupBlockFailure.BackupBlockFailureType.BLOCK_ALREADY_SAVED_WITH_OTHER_MAC);
-                    } else {
-                        LOGGER.debug("block {} already saved", backupBlock.getId());
-                        LOGGER.trace("end saveFromUserInLocalBackup: return {}", Optional.empty());
-                        return Optional.empty();
-                    }
-                } finally {
-                    mac.reset();
+        Path blockPath = this.p2PBackupProperties.getStorageDir().resolve(userId).resolve(backupBlock.getId());
+        Mac mac = HmacUtils.getInitializedMac(CryptoConstants.HMAC_BLOCK_ALGORITHM, Base64.getDecoder().decode(backupBlock.getMacSecret()));
+        if (Files.exists(blockPath)) {
+            try (InputStream fis = Files.newInputStream(blockPath, StandardOpenOption.READ)) {
+                HmacUtils.updateHmac(mac, fis);
+                String macOfBlock = Base64.getEncoder().encodeToString(mac.doFinal());
+                if (!macOfBlock.equals(backupBlock.getMacOfBlock())) {
+                    LOGGER.debug("received backup block {} of user {} is already saved", backupBlock.getId(), userId);
+                    LOGGER.trace("end saveFromUserInLocalBackup: return {}", BackupBlockFailure.BackupBlockFailureType.BLOCK_ALREADY_SAVED_WITH_OTHER_MAC);
+                    return Optional.of(BackupBlockFailure.BackupBlockFailureType.BLOCK_ALREADY_SAVED_WITH_OTHER_MAC);
+                } else {
+                    LOGGER.debug("block {} already saved", backupBlock.getId());
+                    LOGGER.trace("end saveFromUserInLocalBackup: return {}", Optional.empty());
+                    return Optional.empty();
                 }
-            }
-
-            try (ReadableByteChannel downloadChannel = Channels.newChannel(new MacInputStream(new URL(backupBlock.getDownloadURL()).openStream(), mac));
-                 FileChannel fileChannel = FileChannel.open(blockPath, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
-                fileChannel.transferFrom(downloadChannel, 0, Long.MAX_VALUE);
-            } catch (IOException e) {
-                LOGGER.warn("unable to save received backup block {} from user {}", backupBlock.getId(), userId, e);
-                Files.deleteIfExists(blockPath);
+            } catch (IOException ioe) {
+                LOGGER.warn("unable to save received block {}", backupBlock.getId());
                 LOGGER.trace("end saveFromUserInLocalBackup: return {}", BackupBlockFailure.BackupBlockFailureType.GENERAL);
                 return Optional.of(BackupBlockFailure.BackupBlockFailureType.GENERAL);
+            } finally {
+                mac.reset();
             }
+        }
 
-            // check afterwards if the mac was correct, because this should be the exception
-            String macOfBlock = Base64.getEncoder().encodeToString(mac.doFinal());
-
-            if (!macOfBlock.equals(backupBlock.getMacOfBlock())) {
-                // the block was modified on the cloud-server
-                LOGGER.warn("mac ({}) of received block {} is not equal to expected mac ({})", macOfBlock, backupBlock.getId(), backupBlock.getMacOfBlock());
-                Files.deleteIfExists(blockPath);
-                LOGGER.trace("end saveFromUserInLocalBackup: return {}", BackupBlockFailure.BackupBlockFailureType.WRONG_MAC);
-                return Optional.of(BackupBlockFailure.BackupBlockFailureType.WRONG_MAC);
-            } else {
-                LOGGER.debug("saved block {}", backupBlock.getId());
-                LOGGER.trace("end saveFromUserInLocalBackup: return Optional.empty()");
-                return Optional.empty();
-            }
-        } catch (IOException ioe) {
-            LOGGER.warn("unable to save received block {}", backupBlock.getId());
+        try (ReadableByteChannel downloadChannel = Channels.newChannel(new MacInputStream(new URL(backupBlock.getDownloadURL()).openStream(), mac));
+             FileChannel fileChannel = FileChannel.open(blockPath, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
+            fileChannel.transferFrom(downloadChannel, 0, Long.MAX_VALUE);
+        } catch (IOException e) {
+            LOGGER.warn("unable to save received backup block {} from user {}", backupBlock.getId(), userId, e);
+            this.fileUtils.deleteIfExistsSilent(blockPath);
             LOGGER.trace("end saveFromUserInLocalBackup: return {}", BackupBlockFailure.BackupBlockFailureType.GENERAL);
             return Optional.of(BackupBlockFailure.BackupBlockFailureType.GENERAL);
+        }
+
+        // check afterwards if the mac was correct, because this should be the exception
+        String macOfBlock = Base64.getEncoder().encodeToString(mac.doFinal());
+
+        if (!macOfBlock.equals(backupBlock.getMacOfBlock())) {
+            // the block was modified on the cloud-server
+            LOGGER.warn("mac ({}) of received block {} is not equal to expected mac ({})", macOfBlock, backupBlock.getId(), backupBlock.getMacOfBlock());
+            this.fileUtils.deleteIfExistsSilent(blockPath);
+            LOGGER.trace("end saveFromUserInLocalBackup: return {}", BackupBlockFailure.BackupBlockFailureType.WRONG_MAC);
+            return Optional.of(BackupBlockFailure.BackupBlockFailureType.WRONG_MAC);
+        } else {
+            LOGGER.debug("saved block {}", backupBlock.getId());
+            LOGGER.trace("end saveFromUserInLocalBackup: return Optional.empty()");
+            return Optional.empty();
         }
     }
 

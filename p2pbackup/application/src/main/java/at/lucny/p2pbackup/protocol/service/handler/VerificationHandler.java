@@ -1,14 +1,13 @@
 package at.lucny.p2pbackup.protocol.service.handler;
 
-import at.lucny.p2pbackup.backup.service.BackupService;
 import at.lucny.p2pbackup.localstorage.service.LocalStorageService;
 import at.lucny.p2pbackup.network.dto.*;
 import at.lucny.p2pbackup.network.service.handler.ClientHandler;
 import at.lucny.p2pbackup.network.service.handler.ServerHandler;
+import at.lucny.p2pbackup.network.service.listener.SuccessListener;
 import at.lucny.p2pbackup.verification.service.VerificationService;
 import at.lucny.p2pbackup.verification.service.VerificationValueService;
 import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
@@ -85,11 +84,7 @@ public class VerificationHandler extends MessageToMessageDecoder<ProtocolMessage
             ChannelFuture future = ctx.writeAndFlush(message);
 
             // after sucessfully sending a delete-message to the user remove the location from the block-locations
-            future.addListener((ChannelFutureListener) channelFuture -> {
-                if (channelFuture.isSuccess()) {
-                    this.verificationService.deleteLocationFromBlock(verifyBlockResponse.getId(), userId);
-                }
-            });
+            future.addListener(new SuccessListener(() -> this.verificationService.deleteLocationFromBlock(verifyBlockResponse.getId(), userId)));
         }
     }
 

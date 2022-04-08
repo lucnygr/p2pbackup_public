@@ -154,98 +154,133 @@ public class RestorationServiceImpl implements RestorationService {
             }
         }
 
+        this.restoreFilesWithoutMissingBlocks();
+
+        this.requestBlocks(types);
+
+        LOGGER.info("finished restoring blocks and files from available users");
+    }
+
+    /**
+     * Restores all files without missing blocks.
+     */
+    private void restoreFilesWithoutMissingBlocks() {
         Page<RestorePath> restorePathsWithoutMissingBlocks = null;
         do {
             restorePathsWithoutMissingBlocks = this.restorePathRepository.findWithoutMissingBlocks(PageRequest.of(0, 100, Sort.Direction.ASC, "id"));
 
             for (RestorePath restorePath : restorePathsWithoutMissingBlocks.getContent()) {
-                List<BlockMetaData> blockMetaDatas = this.pathVersionRepository.findByIdFetchBlockMetaData(restorePath.getPathVersion().getId()).getBlocks();
-                List<Path> blockPaths = new ArrayList<>();
-                List<BlockMetaData> missingBlocks = new ArrayList<>();
-
-                for (BlockMetaData blockMetaData : blockMetaDatas) {
-                    Optional<Path> pathToBlockOptional = this.restorationStorageService.loadFromLocalStorage(blockMetaData.getId());
-
-                    if (pathToBlockOptional.isPresent()) {
-                        blockPaths.add(pathToBlockOptional.get());
-                    } else {
-                        // if the path is missing request the block again (this is an error case)
-                        missingBlocks.add(blockMetaData);
-                    }
-                }
-
-                // if blocks are missing in the local store skip the restore for this file - the fetching of data should be done automatically afterwards
-                if (!missingBlocks.isEmpty()) {
-                    new TransactionTemplate(this.txManager).executeWithoutResult(status -> {
-                        for (BlockMetaData missingBlock : missingBlocks) {
-                            restorePath.getMissingBlocks().add(this.restoreBlockDataRepository.save(new RestoreBlockData(new BlockMetaDataId(missingBlock), RestoreType.RESTORE)));
-                        }
-                        this.restorePathRepository.save(restorePath);
-                    });
-                    continue;
-                }
-
-                Path destinationFile = Paths.get(restorePath.getPath());
-                try {
-                    Files.deleteIfExists(destinationFile); // delete the file if it already exists to recreate it
-                    Files.createDirectories(destinationFile.getParent()); // create all parent directories
-                    Files.createFile(destinationFile); // create the empty file
-                    try (FileChannel destinationChannel = FileChannel.open(destinationFile, StandardOpenOption.WRITE, StandardOpenOption.APPEND)) {
-                        for (Path path : blockPaths) {
-                            try (FileChannel readChannel = FileChannel.open(path, StandardOpenOption.READ)) {
-                                readChannel.transferTo(0, Long.MAX_VALUE, destinationChannel);
-                            }
-                        }
-                        this.restorePathRepository.delete(restorePath);
-                    } catch (IOException e) {
-                        LOGGER.error("unable to restore file {}", destinationFile, e);
-                    }
-                } catch (IOException e) {
-                    LOGGER.error("unable to delete already restored file {}", destinationFile, e);
-                }
+                this.restoreFile(restorePath);
             }
         } while (restorePathsWithoutMissingBlocks.hasNext());
+    }
 
-        List<String> onlineUsers = this.clientService.getOnlineClients().stream().map(NettyClient::getUser).map(User::getId).toList();
-        if (!CollectionUtils.isEmpty(onlineUsers)) {
-            List<String> restoreBlockIds = this.restoreBlockDataRepository.findIdsByUserIdsAndTypes(onlineUsers, types, PageRequest.of(0, 1000)).getContent();
-            List<List<String>> partitionedRestoreBlockIds = Lists.partition(restoreBlockIds, 100);
-            for (List<String> blockIdsToRestore : partitionedRestoreBlockIds) {
-                List<BlockMetaData> blocksToRestore = this.blockMetaDataRepository.findByIdsFetchLocations(blockIdsToRestore);
-                for (BlockMetaData block : blocksToRestore) {
-                    String blockId = block.getId();
+    /**
+     * Restores a file represented by the {@link RestorePath}. Checks if all blocks are available. If not the restoration is skipped and the blocks will be added as {@link RestoreBlockData}-tasks.
+     *
+     * @param restorePath the file to restore
+     */
+    private void restoreFile(RestorePath restorePath) {
+        List<BlockMetaData> blockMetaDatas = this.pathVersionRepository.findByIdFetchBlockMetaData(restorePath.getPathVersion().getId()).getBlocks();
+        List<Path> blockPaths = new ArrayList<>();
+        List<BlockMetaData> missingBlocks = new ArrayList<>();
 
-                    if (this.restorationStorageService.loadFromLocalStorage(blockId).isPresent()) {
-                        new TransactionTemplate(this.txManager).executeWithoutResult(status -> {
-                            // cleanup restoreBlockData if needed
-                            Optional<RestoreBlockData> restoreBlockDataOptional = this.restoreBlockDataRepository.findById(new BlockMetaDataId(block));
-                            if (restoreBlockDataOptional.isPresent()) {
-                                List<RestorePath> restorePaths = this.restorePathRepository.findByRestoreBlockData(restoreBlockDataOptional.get());
-                                for (RestorePath path : restorePaths) {
-                                    path.getMissingBlocks().removeIf(b -> b.getBlockMetaDataId().getBlockMetaData().getId().equals(block.getId()));
-                                }
-                                this.restoreBlockDataRepository.delete(restoreBlockDataOptional.get());
-                            }
-                        });
-                    } else {
-                        Optional<NettyClient> clientOptional = this.getUserForRestore(block);
-                        if (clientOptional.isPresent()) {
-                            var request = RestoreBlock.newBuilder().addId(blockId).setFor(RestoreBlockFor.RESTORE);
-                            ProtocolMessage message = ProtocolMessage.newBuilder().setRestoreBlock(request).build();
-                            try {
-                                clientOptional.get().write(message);
-                            } catch (RuntimeException e) {
-                                LOGGER.warn("unable to send restore-block for block {} to {}", blockId, clientOptional.get().getUser().getId());
-                            }
-                        } else {
-                            LOGGER.debug("no client to request block {} online", blockId);
-                        }
-                    }
-                }
+        for (BlockMetaData blockMetaData : blockMetaDatas) {
+            Optional<Path> pathToBlockOptional = this.restorationStorageService.loadFromLocalStorage(blockMetaData.getId());
+
+            if (pathToBlockOptional.isPresent()) {
+                blockPaths.add(pathToBlockOptional.get());
+            } else {
+                // if the path is missing request the block again (this is an error case)
+                missingBlocks.add(blockMetaData);
             }
         }
 
-        LOGGER.info("finished restoring blocks and files from available users");
+        // if blocks are missing in the local store skip the restore for this file - the fetching of data should be done automatically afterwards
+        if (!missingBlocks.isEmpty()) {
+            new TransactionTemplate(this.txManager).executeWithoutResult(status -> {
+                for (BlockMetaData missingBlock : missingBlocks) {
+                    restorePath.getMissingBlocks().add(this.restoreBlockDataRepository.save(new RestoreBlockData(new BlockMetaDataId(missingBlock), RestoreType.RESTORE)));
+                }
+                this.restorePathRepository.save(restorePath);
+            });
+        } else {
+            this.restoreFileFromBlocks(restorePath, blockPaths);
+        }
+    }
+
+    /**
+     * Restores the file represented by the given {@link RestorePath} from the given blocks.
+     * If successfull deletes the {@link RestorePath}.
+     *
+     * @param restorePath the {@link RestorePath} representing the file to be restored
+     * @param blockPaths  the blocks the file is contained of
+     */
+    private void restoreFileFromBlocks(RestorePath restorePath, List<Path> blockPaths) {
+        Path destinationFile = Paths.get(restorePath.getPath());
+        try {
+            Files.deleteIfExists(destinationFile); // delete the file if it already exists to recreate it
+            Files.createDirectories(destinationFile.getParent()); // create all parent directories
+            Files.createFile(destinationFile); // create the empty file
+            try (FileChannel destinationChannel = FileChannel.open(destinationFile, StandardOpenOption.WRITE, StandardOpenOption.APPEND)) {
+                for (Path path : blockPaths) {
+                    try (FileChannel readChannel = FileChannel.open(path, StandardOpenOption.READ)) {
+                        readChannel.transferTo(0, Long.MAX_VALUE, destinationChannel);
+                    }
+                }
+                this.restorePathRepository.delete(restorePath);
+            }
+        } catch (IOException e) {
+            LOGGER.error("unable to delete already restored file {}", destinationFile, e);
+        }
+    }
+
+    private void requestBlocks(List<RestoreType> types) {
+        List<String> onlineUsers = this.clientService.getOnlineClients().stream().map(NettyClient::getUser).map(User::getId).toList();
+        if (CollectionUtils.isEmpty(onlineUsers)) {
+            return;
+        }
+
+        List<String> restoreBlockIds = this.restoreBlockDataRepository.findIdsByUserIdsAndTypes(onlineUsers, types, PageRequest.of(0, 1000)).getContent();
+        List<List<String>> partitionedRestoreBlockIds = Lists.partition(restoreBlockIds, 100);
+        for (List<String> blockIdsToRestore : partitionedRestoreBlockIds) {
+            List<BlockMetaData> blocksToRestore = this.blockMetaDataRepository.findByIdsFetchLocations(blockIdsToRestore);
+            for (BlockMetaData block : blocksToRestore) {
+                this.restoreBlock(block);
+            }
+        }
+    }
+
+    private void restoreBlock(BlockMetaData block) {
+        String blockId = block.getId();
+
+        if (this.restorationStorageService.loadFromLocalStorage(blockId).isPresent()) {
+            new TransactionTemplate(this.txManager).executeWithoutResult(status -> {
+                // cleanup restoreBlockData if needed
+                Optional<RestoreBlockData> restoreBlockDataOptional = this.restoreBlockDataRepository.findById(new BlockMetaDataId(block));
+                if (restoreBlockDataOptional.isPresent()) {
+                    List<RestorePath> restorePaths = this.restorePathRepository.findByRestoreBlockData(restoreBlockDataOptional.get());
+                    for (RestorePath path : restorePaths) {
+                        path.getMissingBlocks().removeIf(b -> b.getBlockMetaDataId().getBlockMetaData().getId().equals(block.getId()));
+                    }
+                    this.restoreBlockDataRepository.delete(restoreBlockDataOptional.get());
+                }
+            });
+        } else {
+            Optional<NettyClient> clientOptional = this.getUserForRestore(block);
+            if (clientOptional.isPresent()) {
+                var request = RestoreBlock.newBuilder().addId(block.getId()).setFor(RestoreBlockFor.RESTORE);
+                ProtocolMessage message = ProtocolMessage.newBuilder().setRestoreBlock(request).build();
+                try {
+                    clientOptional.get().write(message);
+                } catch (RuntimeException e) {
+                    LOGGER.warn("unable to send restore-block for block {} to {}", block.getId(), clientOptional.get().getUser().getId());
+                }
+            } else {
+                LOGGER.debug("no client to request block {} online", block.getId());
+            }
+        }
+
     }
 
     private Optional<NettyClient> getUserForRestore(BlockMetaData block) {

@@ -8,6 +8,9 @@ import java.time.LocalDateTime;
 
 public interface DistributionService {
 
+    /**
+     * Iterates over all distributable blocks that where uploaded to the cloud-provider and distributes them to other peers.
+     */
     void distributeBlocks();
 
     int getNumberOfVerifiedReplicas(@NotNull BlockMetaData bmd);

@@ -188,19 +188,23 @@ public class CryptoServiceImpl implements CryptoService {
             engine.setNeedClientAuth(true);
 
             String[] enProtocols = engine.getEnabledProtocols();
-            LOGGER.trace("Enabled protocols are: {}", Arrays.toString(enProtocols));
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("Enabled protocols are: {}", Arrays.toString(enProtocols));
+            }
             if (!Arrays.asList(enProtocols).contains(CryptoConstants.TLS_VERSION)) {
                 throw new IllegalStateException("protocol version " + CryptoConstants.TLS_VERSION + " not supported");
             }
             engine.setEnabledProtocols(new String[]{CryptoConstants.TLS_VERSION});
 
             String[] enCiphersuite = engine.getEnabledCipherSuites();
-            LOGGER.trace("Enabled ciphersuites are: {}", Arrays.toString(enCiphersuite));
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("Enabled ciphersuites are: {}", Arrays.toString(enCiphersuite));
+            }
             engine.setEnabledCipherSuites(CryptoConstants.TLS_CIPHERS);
 
             return engine;
         } catch (KeyStoreException | CertificateException | NoSuchAlgorithmException | KeyManagementException | IOException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException("unable to create ssl-engine", e);
         } finally {
             LOGGER.trace("end createSslEngine");
         }

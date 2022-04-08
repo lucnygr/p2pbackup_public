@@ -14,9 +14,9 @@ import at.lucny.p2pbackup.network.dto.RestoreBlock;
 import at.lucny.p2pbackup.network.dto.RestoreBlockFor;
 import at.lucny.p2pbackup.network.service.ClientService;
 import at.lucny.p2pbackup.network.service.NettyClient;
+import at.lucny.p2pbackup.network.service.listener.SuccessListener;
 import com.google.common.collect.Lists;
 import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
@@ -108,34 +108,7 @@ public class DistributionServiceImpl implements DistributionService {
                     continue;
                 }
 
-                List<NettyClient> usersForReplication = this.getUsersForReplication(bmd);
-                if (CollectionUtils.isEmpty(usersForReplication)) {
-                    LOGGER.debug("for backup-block {} are no other users online to backup to", cloudUpload.getBlockMetaData().getId());
-                    continue;
-                }
-
-                var backupBlockBuilder = BackupBlock.newBuilder().setId(bmd.getId()).setDownloadURL(cloudUpload.getShareUrl())
-                        .setMacOfBlock(cloudUpload.getEncryptedBlockMac()).setMacSecret(cloudUpload.getMacSecret());
-                ProtocolMessage message = ProtocolMessage.newBuilder().setBackup(backupBlockBuilder).build();
-
-                for (NettyClient client : usersForReplication) {
-                    try {
-                        ChannelFuture future = client.write(message);
-
-                        // after sucessfully sending a backup-message to the user add him as unverified location
-                        future.addListener((ChannelFutureListener) channelFuture -> {
-                            if (channelFuture.isSuccess()) {
-                                Optional<DataLocation> optionalLocation = this.dataLocationRepository.findByBlockMetaDataIdAndUserId(bmd.getId(), client.getUser().getId());
-                                if (optionalLocation.isEmpty()) {
-                                    this.dataLocationRepository.save(new DataLocation(bmd, client.getUser().getId(), LocalDateTime.now(ZoneOffset.UTC).minus(this.p2PBackupProperties.getVerificationProperties().getDurationBeforeVerificationInvalid())));
-                                }
-                            }
-                        });
-                    } catch (RuntimeException e) {
-                        LOGGER.warn("unable to send backup-block to {}", client.getUser().getId());
-                    }
-                }
-
+                this.distributeBlock(cloudUpload, bmd);
             }
         }
 
@@ -145,6 +118,40 @@ public class DistributionServiceImpl implements DistributionService {
         }
 
         LOGGER.info("finished distributing blocks to other users");
+    }
+
+    /**
+     * Finds users to distribute the given block to and sends them the BackupBlock-message.
+     *
+     * @param cloudUpload the cloud-upload-entry for the block with the download-url
+     * @param bmd         metadata of the block
+     */
+    private void distributeBlock(CloudUpload cloudUpload, BlockMetaData bmd) {
+        List<NettyClient> usersForReplication = this.getUsersForReplication(bmd);
+        if (CollectionUtils.isEmpty(usersForReplication)) {
+            LOGGER.debug("for backup-block {} are no other users online to backup to", cloudUpload.getBlockMetaData().getId());
+            return;
+        }
+
+        var backupBlockBuilder = BackupBlock.newBuilder().setId(bmd.getId()).setDownloadURL(cloudUpload.getShareUrl())
+                .setMacOfBlock(cloudUpload.getEncryptedBlockMac()).setMacSecret(cloudUpload.getMacSecret());
+        ProtocolMessage message = ProtocolMessage.newBuilder().setBackup(backupBlockBuilder).build();
+
+        for (NettyClient client : usersForReplication) {
+            try {
+                ChannelFuture future = client.write(message);
+
+                // after sucessfully sending a backup-message to the user add him as unverified location
+                future.addListener(new SuccessListener(() -> {
+                    Optional<DataLocation> optionalLocation = this.dataLocationRepository.findByBlockMetaDataIdAndUserId(bmd.getId(), client.getUser().getId());
+                    if (optionalLocation.isEmpty()) {
+                        this.dataLocationRepository.save(new DataLocation(bmd, client.getUser().getId(), LocalDateTime.now(ZoneOffset.UTC).minus(this.p2PBackupProperties.getVerificationProperties().getDurationBeforeVerificationInvalid())));
+                    }
+                }));
+            } catch (RuntimeException e) {
+                LOGGER.warn("unable to send backup-block to {}", client.getUser().getId());
+            }
+        }
     }
 
     private List<NettyClient> getUsersForReplication(BlockMetaData bmd) {
