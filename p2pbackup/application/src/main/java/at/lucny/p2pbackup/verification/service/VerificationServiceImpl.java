@@ -96,8 +96,6 @@ public class VerificationServiceImpl implements VerificationService {
             return;
         }
 
-        LOGGER.info("start to verify blocks of other users");
-
         LOGGER.debug("start to delete blocks from unreliable users");
 
         LocalDateTime deleteWhereVerifyIsOlderThan = LocalDateTime.now(ZoneOffset.UTC).minus(this.p2PBackupProperties.getVerificationProperties().getDurationBeforeDeletion());
@@ -125,8 +123,6 @@ public class VerificationServiceImpl implements VerificationService {
                 this.verifyDataLocation(dataLocation);
             }
         }
-
-        LOGGER.info("finished verifying blocks of other users");
 
         LOGGER.trace("end verifyBlocks");
     }

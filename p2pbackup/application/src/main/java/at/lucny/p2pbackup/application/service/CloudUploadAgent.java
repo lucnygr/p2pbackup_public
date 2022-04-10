@@ -1,11 +1,13 @@
 package at.lucny.p2pbackup.application.service;
 
+import at.lucny.p2pbackup.backup.support.BackupFileEvent;
 import at.lucny.p2pbackup.configuration.support.ConfigurationConstants;
 import at.lucny.p2pbackup.upload.service.CloudUploadService;
 import org.apache.commons.configuration2.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.DependsOn;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
@@ -31,6 +33,11 @@ public class CloudUploadAgent {
         if (!configuration.containsKey(ConfigurationConstants.PROPERTY_DISABLE_UPLOAD_AGENT) || !configuration.getBoolean(ConfigurationConstants.PROPERTY_DISABLE_UPLOAD_AGENT)) {
             taskScheduler.scheduleWithFixedDelay(this::upload, 1000L * 60);
         }
+    }
+
+    @EventListener
+    public void onBackupFileEvent(BackupFileEvent event) {
+        this.upload();
     }
 
     public synchronized Future<Void> upload() {
