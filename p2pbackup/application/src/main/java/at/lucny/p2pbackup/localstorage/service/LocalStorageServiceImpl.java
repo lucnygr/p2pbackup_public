@@ -21,6 +21,7 @@ import org.springframework.validation.annotation.Validated;
 
 import javax.annotation.PostConstruct;
 import javax.crypto.Mac;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -205,6 +206,10 @@ public class LocalStorageServiceImpl implements LocalStorageService {
         try (ReadableByteChannel downloadChannel = Channels.newChannel(new MacInputStream(new URL(backupBlock.getDownloadURL()).openStream(), mac));
              FileChannel fileChannel = FileChannel.open(blockPath, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
             fileChannel.transferFrom(downloadChannel, 0, Long.MAX_VALUE);
+        } catch (FileNotFoundException fnfe) {
+            LOGGER.info("backup block {} from url {} from user {} not found", backupBlock.getId(), backupBlock.getDownloadURL(), userId);
+            LOGGER.trace("end saveFromUserInLocalBackup: return {}", BackupBlockFailure.BackupBlockFailureType.BLOCK_NOT_FOUND);
+            return Optional.of(BackupBlockFailure.BackupBlockFailureType.BLOCK_NOT_FOUND);
         } catch (IOException e) {
             LOGGER.warn("unable to save received backup block {} from url {} from user {}", backupBlock.getId(), backupBlock.getDownloadURL(), userId, e);
             this.fileUtils.deleteIfExistsSilent(blockPath);
