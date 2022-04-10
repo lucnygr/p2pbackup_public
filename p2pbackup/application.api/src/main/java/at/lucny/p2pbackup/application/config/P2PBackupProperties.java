@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 
+import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import java.nio.file.Path;
 
@@ -42,4 +43,8 @@ public class P2PBackupProperties {
 
     @NotNull
     private VerificationProperties verificationProperties = new VerificationProperties();
+
+    @NotNull
+    @Min(2)
+    private Integer minimalReplicas = 3;
 }

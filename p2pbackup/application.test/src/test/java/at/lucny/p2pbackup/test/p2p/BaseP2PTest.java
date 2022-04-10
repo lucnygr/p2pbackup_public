@@ -163,6 +163,7 @@ abstract class BaseP2PTest extends BaseTest {
         SpringApplicationBuilder builder = new SpringApplicationBuilder(TestP2PBackupApplication.class);
         Map<String, Object> properties = new HashMap<>();
         properties.put("at.lucny.p2p-backup.user", user);
+        properties.put("at.lucny.p2p-backup.minimal-replicas", 2);
         properties.put("at.lucny.p2p-backup.network.port", this.userToPort.get(user));
         properties.put("at.lucny.p2p-backup.keystore", "classpath:" + user + "/" + user + ".pfx");
         properties.put("at.lucny.p2p-backup.password", "password" + user);

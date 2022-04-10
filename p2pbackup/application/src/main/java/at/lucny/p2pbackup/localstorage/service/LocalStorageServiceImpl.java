@@ -206,7 +206,7 @@ public class LocalStorageServiceImpl implements LocalStorageService {
              FileChannel fileChannel = FileChannel.open(blockPath, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
             fileChannel.transferFrom(downloadChannel, 0, Long.MAX_VALUE);
         } catch (IOException e) {
-            LOGGER.warn("unable to save received backup block {} from user {}", backupBlock.getId(), userId, e);
+            LOGGER.warn("unable to save received backup block {} from url {} from user {}", backupBlock.getId(), backupBlock.getDownloadURL(), userId, e);
             this.fileUtils.deleteIfExistsSilent(blockPath);
             LOGGER.trace("end saveFromUserInLocalBackup: return {}", BackupBlockFailure.BackupBlockFailureType.GENERAL);
             return Optional.of(BackupBlockFailure.BackupBlockFailureType.GENERAL);

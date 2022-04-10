@@ -1,7 +1,6 @@
 package at.lucny.p2pbackup.upload.service;
 
 import at.lucny.p2pbackup.application.config.P2PBackupProperties;
-import at.lucny.p2pbackup.backup.support.BackupConstants;
 import at.lucny.p2pbackup.core.domain.BlockMetaData;
 import at.lucny.p2pbackup.core.domain.CloudUpload;
 import at.lucny.p2pbackup.core.domain.DataLocation;
@@ -83,7 +82,7 @@ public class DistributionServiceImpl implements DistributionService {
 
     @Override
     public boolean hasEnoughVerifiedReplicas(BlockMetaData bmd) {
-        return this.getNumberOfVerifiedReplicas(bmd) >= BackupConstants.NR_OF_REPLICAS;
+        return this.getNumberOfVerifiedReplicas(bmd) >= this.p2PBackupProperties.getMinimalReplicas();
     }
 
     @Override
@@ -97,7 +96,7 @@ public class DistributionServiceImpl implements DistributionService {
 
         Set<CloudUpload> cloudUploadsToDelete = new HashSet<>();
         // try to distribute at maximum 1000 blocks for this iteration
-        List<String> cloudUploadIds = this.cloudUploadRepository.findIdByShareUrlIsNotNull(PageRequest.of(0, 10000)).getContent();
+        List<String> cloudUploadIds = this.cloudUploadRepository.findIdByShareUrlIsNotNull(PageRequest.of(0, 1000)).getContent();
         List<List<String>> partitionedCloudUploadIds = Lists.partition(cloudUploadIds, 100);
         long nrOfProcessedUploads = 0;
         long nrOfSuccessfullDistributions = 0;
@@ -190,7 +189,7 @@ public class DistributionServiceImpl implements DistributionService {
         Collections.shuffle(appliableUsersForReplication);
 
         // return needed amount of clients for replication
-        return appliableUsersForReplication.subList(0, Math.min((int) BackupConstants.NR_OF_REPLICAS - this.getNumberOfVerifiedReplicas(bmd), appliableUsersForReplication.size()));
+        return appliableUsersForReplication.subList(0, Math.min(this.p2PBackupProperties.getMinimalReplicas() - this.getNumberOfVerifiedReplicas(bmd), appliableUsersForReplication.size()));
     }
 
     private Optional<NettyClient> getUsersForBlockRequest(BlockMetaData bmd) {
@@ -225,11 +224,15 @@ public class DistributionServiceImpl implements DistributionService {
         }
     }
 
+    public boolean hasNotEnoughVerifiedReplicas(String bmdId) {
+        return this.blockMetaDataRepository.hasNotEnoughVerifiedReplicas(bmdId, this.p2PBackupProperties.getMinimalReplicas(), this.calulateVerificationInvalidDateTime());
+    }
+
     @Override
     public void verifyEnoughReplicas() {
         LOGGER.trace("begin verifyEnoughReplicas()");
 
-        List<BlockMetaData> blocksWithNotEnoughReplicas = this.blockMetaDataRepository.findBlocksWithNotEnoughVerifiedReplicas(BackupConstants.NR_OF_REPLICAS, this.calulateVerificationInvalidDateTime());
+        List<BlockMetaData> blocksWithNotEnoughReplicas = this.blockMetaDataRepository.findBlocksWithNotEnoughVerifiedReplicas(this.p2PBackupProperties.getMinimalReplicas(), this.calulateVerificationInvalidDateTime());
         if (!blocksWithNotEnoughReplicas.isEmpty()) {
             LOGGER.info("found {} blocks with not enough replicas", blocksWithNotEnoughReplicas.size());
 

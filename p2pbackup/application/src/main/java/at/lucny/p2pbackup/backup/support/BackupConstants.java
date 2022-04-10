@@ -7,8 +7,6 @@ public final class BackupConstants {
 
     public static final int ONE_KILOBYTE = 1024;
 
-    public static final long NR_OF_REPLICAS = 2;
-
     /**
      * Prefix for blocks that contain an index of all version-blocks of a backup.
      */

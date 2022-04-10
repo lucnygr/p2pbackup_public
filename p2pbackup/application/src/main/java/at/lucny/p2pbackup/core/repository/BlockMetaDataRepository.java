@@ -53,7 +53,4 @@ public interface BlockMetaDataRepository extends JpaRepository<BlockMetaData, St
     boolean hasNotEnoughVerifiedReplicas(@Param("bmdId") String bmdId, @Param("nrOfReplicas") long nrOfReplicas, @Param("verificationInvalidDate") LocalDateTime verificationInvalidDate);
 
     List<BlockMetaData> findAllByIdLike(String bmdId, Pageable pageRequest);
-
-    @Query("SELECT bmd.id FROM BlockMetaData bmd")
-    Page<String> findAllIds(Pageable page);
 }

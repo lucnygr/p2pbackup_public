@@ -115,7 +115,7 @@ public class RestorationServiceImpl implements RestorationService {
 
     @Override
     public void restoreBlocks() {
-        LOGGER.info("start to restore blocks and files");
+        LOGGER.trace("begin restoreBlocks()");
 
         List<RestoreType> types = Arrays.asList(RestoreType.RECOVER_META_DATA_AND_RESTORE_DATA, RestoreType.RESTORE, RestoreType.RECOVER);
 
@@ -124,6 +124,7 @@ public class RestorationServiceImpl implements RestorationService {
 
         // if we are in recovery mode
         if (recoveryState != null) {
+            LOGGER.info("start to recover blocks and files");
             switch (recoveryState) {
                 case INITIALIZED -> {
                     LOGGER.info("waiting for recovery-start");
@@ -147,9 +148,13 @@ public class RestorationServiceImpl implements RestorationService {
                 }
             }
         } else { // if we are not in recovery mode the restore is done if no more restore-path-entries exist
-            if (this.restorePathRepository.count() == 0 && this.restoreBlockDataRepository.count() == 0) {
+            long pathsToRestore = this.restorePathRepository.count();
+            long blocksToRestore = this.restoreBlockDataRepository.count();
+            if (pathsToRestore == 0 && blocksToRestore == 0) {
                 LOGGER.debug("no more blocks to restore");
                 this.restorationStorageService.deleteAll();
+            } else {
+                LOGGER.info("restoring {} paths and {} blocks", pathsToRestore, blocksToRestore);
             }
         }
 
@@ -157,7 +162,7 @@ public class RestorationServiceImpl implements RestorationService {
 
         this.requestBlocks(types);
 
-        LOGGER.info("finished restoring blocks and files from available users");
+        LOGGER.trace("end restoreBlocks");
     }
 
     /**

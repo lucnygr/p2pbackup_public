@@ -15,6 +15,8 @@ public interface DistributionService {
 
     int getNumberOfVerifiedReplicas(@NotNull BlockMetaData bmd);
 
+    boolean hasNotEnoughVerifiedReplicas(@NotNull String bmdId);
+
     boolean hasEnoughVerifiedReplicas(@NotNull String blockMetaDataId);
 
     boolean hasEnoughVerifiedReplicas(@NotNull BlockMetaData bmd);

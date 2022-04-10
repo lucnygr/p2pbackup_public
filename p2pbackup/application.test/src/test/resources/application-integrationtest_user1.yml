@@ -6,6 +6,7 @@ at:
         port: 10001
       keystore: classpath:user1/user1.pfx
       password: passworduser1
+      minimal-replicas: 2
 
 spring:
   datasource:

@@ -123,7 +123,7 @@ class BackupServiceWorker {
         // if the block doesn't exist in the db generate a new BlockMetaData
         BlockMetaData bmd = optionalBlockMetaData.orElseGet(() -> this.blockMetaDataRepository.save(new BlockMetaData(block.hash())));
 
-        boolean saveInLocalBackup = optionalBlockMetaData.map(b -> this.blockMetaDataRepository.hasNotEnoughVerifiedReplicas(b.getId(), BackupConstants.NR_OF_REPLICAS, this.distributionService.calulateVerificationInvalidDateTime())).orElse(true);
+        boolean saveInLocalBackup = optionalBlockMetaData.map(b -> this.distributionService.hasNotEnoughVerifiedReplicas(b.getId())).orElse(true);
         boolean needsMoreVerificationValues = this.verificationValueService.needsGenerationOfVerificationValues(bmd.getId());
 
         if (saveInLocalBackup || needsMoreVerificationValues) {
