@@ -6,6 +6,7 @@ import at.lucny.p2pbackup.core.domain.*;
 import at.lucny.p2pbackup.core.repository.BlockMetaDataRepository;
 import at.lucny.p2pbackup.core.repository.PathDataRepository;
 import at.lucny.p2pbackup.core.repository.PathVersionRepository;
+import at.lucny.p2pbackup.core.support.FileUtils;
 import at.lucny.p2pbackup.localstorage.service.RestorationStorageService;
 import at.lucny.p2pbackup.network.dto.ProtocolMessage;
 import at.lucny.p2pbackup.network.dto.RestoreBlock;
@@ -67,6 +68,8 @@ public class RestorationServiceImpl implements RestorationService {
 
     private final Configuration configuration;
 
+    private final FileUtils fileUtils = new FileUtils();
+
     public RestorationServiceImpl(PathDataRepository pathDataRepository, PathVersionRepository pathVersionRepository, RestorePathRepository restorePathRepository, RestoreBlockDataRepository restoreBlockDataRepository, RestorationStorageService restorationStorageService, BlockMetaDataRepository blockMetaDataRepository, @Lazy ClientService clientService, PlatformTransactionManager txManager, Configuration configuration) {
         this.pathDataRepository = pathDataRepository;
         this.pathVersionRepository = pathVersionRepository;
@@ -122,6 +125,9 @@ public class RestorationServiceImpl implements RestorationService {
         RecoveryState recoveryState = this.configuration.get(RecoveryState.class, ConfigurationConstants.PROPERTY_RECOVERY_STATE, null);
         LOGGER.debug("recovery-state is {}", recoveryState);
 
+        long pathsToRestore = this.restorePathRepository.count();
+        long blocksToRestore = this.restoreBlockDataRepository.count();
+
         // if we are in recovery mode
         if (recoveryState != null) {
             LOGGER.info("start to recover blocks and files");
@@ -141,15 +147,13 @@ public class RestorationServiceImpl implements RestorationService {
                 }
                 case RECOVER_METADATA -> {
                     // if there are no blocks to recover stop recovery-mode
-                    if (this.restoreBlockDataRepository.count() == 0) {
+                    if (blocksToRestore == 0) {
                         LOGGER.info("all blocks recovered, stop recovery-mode");
                         this.configuration.clearProperty(ConfigurationConstants.PROPERTY_RECOVERY_STATE);
                     }
                 }
             }
         } else { // if we are not in recovery mode the restore is done if no more restore-path-entries exist
-            long pathsToRestore = this.restorePathRepository.count();
-            long blocksToRestore = this.restoreBlockDataRepository.count();
             if (pathsToRestore == 0 && blocksToRestore == 0) {
                 LOGGER.debug("no more blocks to restore");
                 this.restorationStorageService.deleteAll();
@@ -169,22 +173,35 @@ public class RestorationServiceImpl implements RestorationService {
      * Restores all files without missing blocks.
      */
     private void restoreFilesWithoutMissingBlocks() {
+        long totalNrOfRestorableFiles = this.restorePathRepository.countWithoutMissingBlocks();
+        if (totalNrOfRestorableFiles == 0) {
+            return;
+        }
+
+        LOGGER.info("trying to restore {} files", totalNrOfRestorableFiles);
+
         Page<RestorePath> restorePathsWithoutMissingBlocks = null;
         do {
             restorePathsWithoutMissingBlocks = this.restorePathRepository.findWithoutMissingBlocks(PageRequest.of(0, 100, Sort.Direction.ASC, "id"));
 
             for (RestorePath restorePath : restorePathsWithoutMissingBlocks.getContent()) {
-                this.restoreFile(restorePath);
+                if (this.restoreFile(restorePath)) {
+                    LOGGER.info("restored file {}", restorePath.getPath());
+                    this.restorePathRepository.delete(restorePath);
+                }
             }
         } while (restorePathsWithoutMissingBlocks.hasNext());
+
+        LOGGER.info("restored all currently available files");
     }
 
     /**
      * Restores a file represented by the {@link RestorePath}. Checks if all blocks are available. If not the restoration is skipped and the blocks will be added as {@link RestoreBlockData}-tasks.
      *
      * @param restorePath the file to restore
+     * @return true if the file could be restored, otherwise false
      */
-    private void restoreFile(RestorePath restorePath) {
+    private boolean restoreFile(RestorePath restorePath) {
         List<BlockMetaData> blockMetaDatas = this.pathVersionRepository.findByIdFetchBlockMetaData(restorePath.getPathVersion().getId()).getBlocks();
         List<Path> blockPaths = new ArrayList<>();
         List<BlockMetaData> missingBlocks = new ArrayList<>();
@@ -208,19 +225,20 @@ public class RestorationServiceImpl implements RestorationService {
                 }
                 this.restorePathRepository.save(restorePath);
             });
+            return false;
         } else {
-            this.restoreFileFromBlocks(restorePath, blockPaths);
+            return this.restoreFileFromBlocks(restorePath, blockPaths);
         }
     }
 
     /**
      * Restores the file represented by the given {@link RestorePath} from the given blocks.
-     * If successfull deletes the {@link RestorePath}.
      *
      * @param restorePath the {@link RestorePath} representing the file to be restored
      * @param blockPaths  the blocks the file is contained of
+     * @return true if the file could be restored, otherwise false
      */
-    private void restoreFileFromBlocks(RestorePath restorePath, List<Path> blockPaths) {
+    private boolean restoreFileFromBlocks(RestorePath restorePath, List<Path> blockPaths) {
         Path destinationFile = Paths.get(restorePath.getPath());
         try {
             Files.deleteIfExists(destinationFile); // delete the file if it already exists to recreate it
@@ -232,11 +250,13 @@ public class RestorationServiceImpl implements RestorationService {
                         readChannel.transferTo(0, Long.MAX_VALUE, destinationChannel);
                     }
                 }
-                this.restorePathRepository.delete(restorePath);
             }
         } catch (IOException e) {
+            this.fileUtils.deleteIfExistsSilent(destinationFile);
             LOGGER.error("unable to delete already restored file {}", destinationFile, e);
+            return false;
         }
+        return true;
     }
 
     private void requestBlocks(List<RestoreType> types) {
@@ -245,12 +265,18 @@ public class RestorationServiceImpl implements RestorationService {
             return;
         }
 
+        long nrOfRequestedBlocks = 0;
         List<String> restoreBlockIds = this.restoreBlockDataRepository.findIdsByUserIdsAndTypes(onlineUsers, types, PageRequest.of(0, 1000)).getContent();
         List<List<String>> partitionedRestoreBlockIds = Lists.partition(restoreBlockIds, 100);
         for (List<String> blockIdsToRestore : partitionedRestoreBlockIds) {
             List<BlockMetaData> blocksToRestore = this.blockMetaDataRepository.findByIdsFetchLocations(blockIdsToRestore);
             for (BlockMetaData block : blocksToRestore) {
                 this.restoreBlock(block);
+
+                nrOfRequestedBlocks++;
+                if (nrOfRequestedBlocks % 100 == 0) {
+                    LOGGER.info("requested {} blocks for restore", nrOfRequestedBlocks);
+                }
             }
         }
     }

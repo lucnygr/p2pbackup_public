@@ -106,7 +106,7 @@ public class RestoreHandler extends MessageToMessageDecoder<ProtocolMessageWrapp
 
                 switch (restoreBlockResponse.getFor()) {
                     case RESTORE -> {
-                        LOGGER.info("restoring block {}", restoreBlockResponse.getId());
+                        LOGGER.debug("restoring block {}", restoreBlockResponse.getId());
                         boolean isDataBlock = true;
                         if (this.recoveryService.isRecoveryActive()) {
                             isDataBlock = this.recoveryService.recoverMetaData(userId, restoreBlockResponse.getId(), plainDataBuffer.duplicate()); // try to recover metadata and save block if needed

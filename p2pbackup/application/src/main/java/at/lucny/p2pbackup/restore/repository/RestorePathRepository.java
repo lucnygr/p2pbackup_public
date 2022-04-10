@@ -14,6 +14,10 @@ import java.util.List;
 
 public interface RestorePathRepository extends JpaRepository<RestorePath, String> {
 
+    @Query("SELECT count(p) FROM RestorePath p " +
+            "WHERE p.missingBlocks IS EMPTY")
+    long countWithoutMissingBlocks();
+
     @Query("SELECT p FROM RestorePath p " +
             "WHERE p.missingBlocks IS EMPTY")
     Page<RestorePath> findWithoutMissingBlocks(Pageable page);
