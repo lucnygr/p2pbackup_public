@@ -150,7 +150,7 @@ public class BackupServiceImpl implements BackupService {
                     });
         }
 
-        LOGGER.info("checking for deleted files");
+        LOGGER.info("processed {} files, checking for deleted files", nrOfFiles.get());
 
         for (String missingPathId : pathsThatNoLongerExist.values()) {
             LOGGER.debug("backup deleted version for path-id {}", missingPathId);

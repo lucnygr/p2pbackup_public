@@ -279,6 +279,8 @@ public class RestorationServiceImpl implements RestorationService {
                 }
             }
         }
+
+        LOGGER.info("requested {} blocks for restore", nrOfRequestedBlocks);
     }
 
     private void restoreBlock(BlockMetaData block) {

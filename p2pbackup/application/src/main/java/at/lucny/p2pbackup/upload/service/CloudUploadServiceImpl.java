@@ -73,16 +73,18 @@ public class CloudUploadServiceImpl implements CloudUploadService {
     public void uploadLocalBackupBlocks() {
         LOGGER.trace("begin uploadLocalBackupBlocks()");
 
+        LOGGER.debug("uploading available blocks in local-storage to cloud-storage");
+        long totalNrOfCloudUploads = this.cloudUploadRepository.countByShareUrlIsNull();
+        if (totalNrOfCloudUploads == 0) {
+            return;
+        }
+
         if (CollectionUtils.isEmpty(this.cloudStorageServiceProvider.getInitializedCloudStorageServices())) {
             LOGGER.warn("no cloud storage service configured");
             return;
         }
 
-        LOGGER.debug("uploading available blocks in local-storage to cloud-storage");
-        long totalNrOfCloudUploads = this.cloudUploadRepository.countByShareUrlIsNull();
-        if(totalNrOfCloudUploads > 0) {
-            LOGGER.info("prepare to upload up to {} blocks", totalNrOfCloudUploads);
-        }
+        LOGGER.info("prepare to upload up to {} blocks", totalNrOfCloudUploads);
 
         // load 100 cloud-uploads per iteration and upload them. they are no longer found by the sql-query, so start again with 100 uploads from the beginning
         Pageable pageRequest = PageRequest.of(0, 100, Sort.Direction.ASC, "id");
@@ -113,7 +115,7 @@ public class CloudUploadServiceImpl implements CloudUploadService {
 
                 nrOfProcessedUploads++;
                 if (nrOfProcessedUploads % 10 == 0) {
-                    LOGGER.info("processed {}/{} cloud-upload-entries", nrOfProcessedUploads, totalNrOfCloudUploads);
+                    LOGGER.info("processed {}/{} cloud-upload-entries", nrOfProcessedUploads, backupBlocks.getTotalElements());
                 }
             }
             if (!CollectionUtils.isEmpty(uploadsToDelete)) {
@@ -122,7 +124,7 @@ public class CloudUploadServiceImpl implements CloudUploadService {
         } while (backupBlocks.hasNext());
 
         if (nrOfProcessedUploads > 0) {
-            LOGGER.info("processed {}/{} cloud-upload-entries", nrOfProcessedUploads, totalNrOfCloudUploads);
+            LOGGER.info("processed {} cloud-upload-entries total", nrOfProcessedUploads);
         }
         LOGGER.trace("end uploadLocalBackupBlocks");
     }

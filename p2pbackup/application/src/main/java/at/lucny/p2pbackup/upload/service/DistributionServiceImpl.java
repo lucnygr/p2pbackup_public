@@ -90,9 +90,10 @@ public class DistributionServiceImpl implements DistributionService {
         LOGGER.trace("begin distributeBlocks()");
 
         long totalNrOfDistributableBlocks = this.cloudUploadRepository.countByShareUrlIsNotNull();
-        if (totalNrOfDistributableBlocks > 0) {
-            LOGGER.info("prepare to distribute up to {} blocks", totalNrOfDistributableBlocks);
+        if (totalNrOfDistributableBlocks == 0) {
+            return;
         }
+        LOGGER.info("prepare to distribute up to {} blocks", totalNrOfDistributableBlocks);
 
         Set<CloudUpload> cloudUploadsToDelete = new HashSet<>();
         // try to distribute at maximum 1000 blocks for this iteration
