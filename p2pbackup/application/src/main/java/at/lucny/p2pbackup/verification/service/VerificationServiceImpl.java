@@ -129,10 +129,12 @@ public class VerificationServiceImpl implements VerificationService {
                     sendVerifyRequestToLocations++;
                 }
                 if (sendVerifyRequestToLocations % 100 == 0) {
-                    LOGGER.info("send verification request to {}/{} blocks", sendVerifyRequestToLocations, dataLocations.getTotalElements());
+                    LOGGER.info("send verification request to {}/{} blocks", sendVerifyRequestToLocations, dataLocationsToVerify.size());
                 }
             }
         }
+
+        LOGGER.info("sent verification request to {}/{} blocks. stop and continue with next run", sendVerifyRequestToLocations, dataLocationsToVerify.size());
 
         LOGGER.trace("end verifyBlocks");
     }

@@ -86,8 +86,8 @@ public class CloudUploadServiceImpl implements CloudUploadService {
 
         LOGGER.info("prepare to upload up to {} blocks", totalNrOfCloudUploads);
 
-        // load 100 cloud-uploads per iteration and upload them. they are no longer found by the sql-query, so start again with 100 uploads from the beginning
-        Pageable pageRequest = PageRequest.of(0, 100, Sort.Direction.ASC, "id");
+        // load 100 cloud-uploads per iteration and upload them. they are no longer found by the sql-query, so start again with 10 uploads from the beginning
+        Pageable pageRequest = PageRequest.of(0, 10, Sort.Direction.ASC, "id");
         Page<CloudUpload> backupBlocks;
 
         long nrOfProcessedUploads = 0;
@@ -114,11 +114,10 @@ public class CloudUploadServiceImpl implements CloudUploadService {
                 }
 
                 nrOfProcessedUploads++;
-                if (nrOfProcessedUploads % 10 == 0) {
-                    LOGGER.info("processed {}/{} cloud-upload-entries", nrOfProcessedUploads, backupBlocks.getTotalElements());
-                }
             }
+            LOGGER.info("processed {}/{} cloud-upload-entries", nrOfProcessedUploads, backupBlocks.getTotalElements());
             if (!CollectionUtils.isEmpty(uploadsToDelete)) {
+                this.cloudUploadRepository.flush();
                 this.cloudUploadRepository.deleteAllInBatch(uploadsToDelete);
             }
         } while (backupBlocks.hasNext());
@@ -159,6 +158,7 @@ public class CloudUploadServiceImpl implements CloudUploadService {
             CloudStorageService service = this.cloudStorageServiceProvider.getInitializedCloudStorageService(cloudUpload.getProviderId()).orElseThrow(() -> new IllegalStateException("Unknown cloud-storage-provider " + cloudUpload.getProviderId()));
             service.delete(cloudUpload.getBlockMetaData().getId());
 
+            this.cloudUploadRepository.flush();
             this.cloudUploadRepository.deleteAllInBatch(Collections.singletonList(cloudUpload));
         }
     }

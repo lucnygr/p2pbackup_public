@@ -32,7 +32,7 @@ public class VerificationAgent {
         this.taskExecutor = taskExecutor;
 
         if (!this.configuration.containsKey(ConfigurationConstants.PROPERTY_DISABLE_VERIFICATION_AGENT) || !this.configuration.getBoolean(ConfigurationConstants.PROPERTY_DISABLE_VERIFICATION_AGENT)) {
-            taskScheduler.scheduleWithFixedDelay(this::verify, 1000L * 60 * 5);
+            taskScheduler.scheduleWithFixedDelay(this::verify, 1000L * 60 * 30);
         }
     }
 

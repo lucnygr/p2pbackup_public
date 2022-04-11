@@ -6,8 +6,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import javax.persistence.LockModeType;
+import java.util.List;
 import java.util.Optional;
 
 public interface CloudUploadRepository extends JpaRepository<CloudUpload, String> {
@@ -39,9 +41,19 @@ public interface CloudUploadRepository extends JpaRepository<CloudUpload, String
     // use pessimistic-write-lock because its highly likely that multiple threads are trying to access and delete the same cloud-upload-entity
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<CloudUpload> findById(String id);
-
+/*
     @Query("SELECT cu.id FROM CloudUpload cu " +
             " WHERE cu.shareUrl IS NOT NULL ")
-    Page<String> findIdByShareUrlIsNotNull(Pageable pageRequest);
+    Page<String> findIdByShareUrlIsNotNull(Pageable pageRequest);*/
+
+    @Query("SELECT cu.id FROM CloudUpload cu " +
+            " INNER JOIN cu.blockMetaData bmd " +
+            " WHERE cu.shareUrl IS NOT NULL " +
+            " AND ( " +
+            "  SELECT COUNT(dl) FROM DataLocation dl " +
+            "  WHERE dl.blockMetaData = bmd " +
+            "  AND dl.userId IN (:userIds)" +
+            " ) < :onlineUserCount ")
+    Page<String> findIdByShareUrlIsNotNull(@Param("userIds") List<String> userIds, @Param("onlineUserCount") long onlineUserCount, Pageable pageRequest);
 
 }

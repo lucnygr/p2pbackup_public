@@ -97,9 +97,15 @@ public class DistributionServiceImpl implements DistributionService {
         }
         LOGGER.info("prepare to distribute up to {} blocks", totalNrOfDistributableBlocks);
 
+        List<String> onlineUsers = this.clientService.getOnlineClients().stream().map(c -> c.getUser().getId()).toList();
+        if (CollectionUtils.isEmpty(onlineUsers)) {
+            LOGGER.info("no other users online");
+            return;
+        }
+
         Set<CloudUpload> cloudUploadsToDelete = new HashSet<>();
         // try to distribute at maximum 1000 blocks for this iteration
-        List<String> cloudUploadIds = this.cloudUploadRepository.findIdByShareUrlIsNotNull(PageRequest.of(0, 1000)).getContent();
+        List<String> cloudUploadIds = this.cloudUploadRepository.findIdByShareUrlIsNotNull(onlineUsers, onlineUsers.size(), PageRequest.of(0, 1000)).getContent();
         List<List<String>> partitionedCloudUploadIds = Lists.partition(cloudUploadIds, 100);
         long nrOfProcessedUploads = 0;
         long nrOfSuccessfullDistributions = 0;
@@ -228,6 +234,7 @@ public class DistributionServiceImpl implements DistributionService {
         }
     }
 
+    @Override
     public boolean hasNotEnoughVerifiedReplicas(String bmdId) {
         return this.blockMetaDataRepository.hasNotEnoughVerifiedReplicas(bmdId, this.p2PBackupProperties.getMinimalReplicas(), this.calulateVerificationInvalidDateTime());
     }
@@ -251,5 +258,26 @@ public class DistributionServiceImpl implements DistributionService {
         }
 
         LOGGER.trace("end verifyEnoughReplicas");
+    }
+
+    @Override
+    public Map<Integer, Long> getNumberOfVerifiedReplicasStatistic() {
+        LocalDateTime verificationInvalidDate = this.calulateVerificationInvalidDateTime();
+        LinkedHashMap<Integer, Long> nrOfReplicas = new LinkedHashMap<>();
+        for (int i = 0; i <= this.p2PBackupProperties.getMinimalReplicas() * 2; i++) {
+            Long nrOfVerifiedReplicas = this.blockMetaDataRepository.countNumberOfVerifiedReplicas(i, verificationInvalidDate);
+            nrOfReplicas.put(i, nrOfVerifiedReplicas);
+        }
+        return nrOfReplicas;
+    }
+
+    @Override
+    public Map<Integer, Long> getNumberOfReplicasStatistic() {
+        LinkedHashMap<Integer, Long> nrOfReplicas = new LinkedHashMap<>();
+        for (int i = 0; i <= this.p2PBackupProperties.getMinimalReplicas() * 2; i++) {
+            Long nr = this.blockMetaDataRepository.countNumberOfReplicas(i);
+            nrOfReplicas.put(i, nr);
+        }
+        return nrOfReplicas;
     }
 }

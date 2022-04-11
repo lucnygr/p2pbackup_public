@@ -5,6 +5,7 @@ import at.lucny.p2pbackup.core.domain.DataLocation;
 
 import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 public interface DistributionService {
 
@@ -26,4 +27,8 @@ public interface DistributionService {
     @NotNull LocalDateTime calulateVerificationInvalidDateTime();
 
     void verifyEnoughReplicas();
+
+    @NotNull Map<Integer, Long> getNumberOfVerifiedReplicasStatistic();
+
+    @NotNull Map<Integer, Long> getNumberOfReplicasStatistic();
 }
