@@ -42,7 +42,7 @@ public class VerificationAgent {
                 try {
                     this.verificationService.verifyBlocks();
                 } catch (Exception e) {
-                    LOGGER.warn("unable to restore blocks", e);
+                    LOGGER.warn("unable to verify blocks", e);
                 } finally {
                     this.runningTask = null;
                 }

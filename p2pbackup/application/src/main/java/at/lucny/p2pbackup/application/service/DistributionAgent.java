@@ -46,7 +46,7 @@ public class DistributionAgent {
                     this.distributionService.verifyEnoughReplicas();
                     LOGGER.debug("finished distributing blocks");
                 } catch (Exception e) {
-                    LOGGER.warn("unable to restore blocks", e);
+                    LOGGER.warn("unable to distribute blocks", e);
                 } finally {
                     this.runningTask = null;
                 }

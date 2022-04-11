@@ -63,12 +63,12 @@ public class NextcloudStorageServiceImpl implements CloudStorageService {
 
     @PreDestroy
     public void stop() throws IOException {
-        LOGGER.trace("begin stop");
+        LOGGER.trace("begin stop()");
         if (this.connector != null) {
             LOGGER.info("shutting down nextcloud-connection");
             this.connector.shutdown();
         }
-        LOGGER.trace("end stop");
+        LOGGER.trace("end stop()");
     }
 
     @Override
@@ -143,7 +143,7 @@ public class NextcloudStorageServiceImpl implements CloudStorageService {
 
         String remoteFilename = this.getRemotePath(path.getFileName().toString());
         this.connector.uploadFile(path.toFile(), remoteFilename);
-        LOGGER.trace("end upload");
+        LOGGER.trace("end upload(path={})", path);
     }
 
     @Override
@@ -151,12 +151,16 @@ public class NextcloudStorageServiceImpl implements CloudStorageService {
         LOGGER.trace("begin share(filename={})", filename);
         this.checkInitialized();
         String remoteFilename = this.getRemotePath(filename);
-        if (!this.connector.fileExists(remoteFilename)) {
-            throw new IllegalArgumentException("remote-path " + remoteFilename + " does not exist");
+        try {
+            String publicUrl = this.shareInternal(remoteFilename);
+            LOGGER.trace("end share(filename={}): return={}", filename, publicUrl);
+            return publicUrl;
+        } catch (NextcloudApiException e) {
+            if (e.getCause() instanceof HttpResponseException ex && ex.getStatusCode() == 404) {// ignore 404 because this means the file as already deleted
+                throw new IllegalArgumentException("remote-path " + remoteFilename + " does not exist");
+            }
+            throw e;
         }
-        String publicUrl = this.shareInternal(remoteFilename);
-        LOGGER.trace("end share: return={}", publicUrl);
-        return publicUrl;
     }
 
     private String shareInternal(String remoteFilename) {
@@ -166,19 +170,17 @@ public class NextcloudStorageServiceImpl implements CloudStorageService {
     }
 
     public void delete(String filename) {
-        LOGGER.trace("begin share(filename={})", filename);
+        LOGGER.trace("begin delete(filename={})", filename);
         this.checkInitialized();
         String remoteFilename = this.getRemotePath(filename);
         try {
             this.connector.removeFile(remoteFilename);
         } catch (NextcloudApiException e) {
-            if (e.getCause() instanceof HttpResponseException ex) {
-                if (ex.getStatusCode() == 404) { // ignore 404 because this means the file as already deleted
-                    return;
-                }
-                throw e;
+            if (e.getCause() instanceof HttpResponseException ex && ex.getStatusCode() == 404) {// ignore 404 because this means the file as already deleted
+                return;
             }
+            throw e;
         }
-        LOGGER.trace("end delete");
+        LOGGER.trace("end delete(filename={})", filename);
     }
 }
