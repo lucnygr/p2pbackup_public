@@ -78,7 +78,10 @@ public class VerificationServiceImpl implements VerificationService {
             ChannelFuture future = client.write(message);
 
             // after sucessfully sending a delete-message to the user remove the location from the block-locations
-            future.addListener(new SuccessListener(() -> this.dataLocationRepository.deleteAllInBatch(Collections.singletonList(dataLocation))));
+            future.addListener(new SuccessListener(() -> {
+                this.dataLocationRepository.flush();
+                this.dataLocationRepository.deleteAllInBatch(Collections.singletonList(dataLocation));
+            }));
         } catch (RuntimeException rte) {
             LOGGER.warn("unable to send delete-block to {}", client.getUser().getId());
         }

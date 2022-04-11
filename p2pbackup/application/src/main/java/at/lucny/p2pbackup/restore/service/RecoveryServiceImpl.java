@@ -347,6 +347,7 @@ public class RecoveryServiceImpl implements RecoveryService {
                     this.restorePathRepository.save(restorePath);
                 }
             }
+            this.restoreBlockDataRepository.flush();
             this.restoreBlockDataRepository.deleteAllInBatch(Collections.singletonList(restoreBlockDataOptional.get()));
         }
     }
