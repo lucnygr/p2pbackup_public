@@ -142,18 +142,24 @@ public class CloudUploadServiceImpl implements CloudUploadService {
     @Transactional
     public void removeCloudUploadByBlockMetaDataId(String bmdId) {
         Optional<CloudUpload> cloudUpload = this.cloudUploadRepository.findByBlockMetaDataId(bmdId);
-        cloudUpload.ifPresent(this::removeCloudUpload);
+        cloudUpload.ifPresent(this::removeCloudUploadInternal);
     }
 
     @Override
     @Transactional
     public void removeCloudUpload(CloudUpload cloudUpload) {
+        Optional<CloudUpload> cloudUploadOptional = this.cloudUploadRepository.findById(cloudUpload.getId());
+        cloudUploadOptional.ifPresent(this::removeCloudUploadInternal);
+    }
+
+    private void removeCloudUploadInternal(CloudUpload cloudUpload) {
         boolean removedFromLocalStorage = this.localStorageService.removeFromLocalStorage(cloudUpload.getBlockMetaData().getId());
         if (removedFromLocalStorage) {
             CloudStorageService service = this.cloudStorageServiceProvider.getInitializedCloudStorageService(cloudUpload.getProviderId()).orElseThrow(() -> new IllegalStateException("Unknown cloud-storage-provider " + cloudUpload.getProviderId()));
             service.delete(cloudUpload.getBlockMetaData().getId());
 
-            this.cloudUploadRepository.deleteAllInBatch(Collections.singletonList(cloudUpload));
+            this.cloudUploadRepository.delete(cloudUpload);
+            //this.cloudUploadRepository.deleteAllInBatch(Collections.singletonList(cloudUpload));
         }
     }
 

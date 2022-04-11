@@ -116,11 +116,18 @@ public class VerificationServiceImpl implements VerificationService {
         dataLocationsToVerify.removeAll(dataLocationsToRemove); // remove locations that should be deleted anyway
         List<List<String>> partitionedDataLocationsToVerify = Lists.partition(dataLocationsToVerify, 100);
 
+        long sendVerifyRequestToLocations = 0;
+
         for (List<String> dataLocationIds : partitionedDataLocationsToVerify) {
             Page<DataLocation> dataLocations = this.dataLocationRepository.findByIdIn(dataLocationIds, Pageable.unpaged());
 
             for (DataLocation dataLocation : dataLocations.getContent()) {
-                this.verifyDataLocation(dataLocation);
+                if (this.verifyDataLocation(dataLocation)) {
+                    sendVerifyRequestToLocations++;
+                }
+                if (sendVerifyRequestToLocations % 100 == 0) {
+                    LOGGER.info("send verification request to {}/{} blocks", sendVerifyRequestToLocations, dataLocations.getTotalElements());
+                }
             }
         }
 
@@ -133,10 +140,11 @@ public class VerificationServiceImpl implements VerificationService {
      * If no verification-values are available requests the block from an online user and returns.
      *
      * @param dataLocation the DataLocation to verify
+     * @return true if the message has been sent, otherwise false
      */
-    private void verifyDataLocation(DataLocation dataLocation) {
+    private boolean verifyDataLocation(DataLocation dataLocation) {
         if (!this.clientService.isOnline(dataLocation.getUserId())) {
-            return;
+            return false;
         }
 
         String bmdId = dataLocation.getBlockMetaData().getId();
@@ -160,7 +168,7 @@ public class VerificationServiceImpl implements VerificationService {
         // if the we still have no verification values we have to request the block from a different user
         if (optionalVerificationValue.isEmpty()) {
             this.requestBlockForVerification(bmdId);
-            return;
+            return false;
         }
 
         var verifyBlock = VerifyBlock.newBuilder().setId(bmdId).setVerificationValueId(optionalVerificationValue.get().getId());
@@ -171,7 +179,9 @@ public class VerificationServiceImpl implements VerificationService {
             client.write(message);
         } catch (RuntimeException e) {
             LOGGER.warn("unable to send verify-block to {}", client.getUser().getId());
+            return false;
         }
+        return true;
     }
 
     /**

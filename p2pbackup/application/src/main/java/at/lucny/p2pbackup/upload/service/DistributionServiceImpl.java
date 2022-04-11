@@ -60,7 +60,9 @@ public class DistributionServiceImpl implements DistributionService {
     @Override
     public int getNumberOfVerifiedReplicas(BlockMetaData bmd) {
         LocalDateTime verificationIsInvalidDateTime = this.calulateVerificationInvalidDateTime();
-        return (int) bmd.getLocations().stream().filter(location -> location.getVerified().isAfter(verificationIsInvalidDateTime)).count();
+        int nrOfVerifiedLocations = (int) bmd.getLocations().stream().filter(location -> location.getVerified().isAfter(verificationIsInvalidDateTime)).count();
+        LOGGER.trace("block {} has {} verified locations with verification-dates > {}", bmd.getId(), nrOfVerifiedLocations, verificationIsInvalidDateTime);
+        return nrOfVerifiedLocations;
     }
 
     @Override
@@ -133,6 +135,7 @@ public class DistributionServiceImpl implements DistributionService {
         if (!CollectionUtils.isEmpty(cloudUploadsToDelete)) {
             LOGGER.info("deleting {} cloudUploads with enough replicas", cloudUploadsToDelete.size());
             for (CloudUpload cloudUpload : cloudUploadsToDelete) {
+                LOGGER.debug("delete block {} from cloud-upload", cloudUpload.getBlockMetaData().getId());
                 this.cloudUploadService.removeCloudUpload(cloudUpload);
             }
         }

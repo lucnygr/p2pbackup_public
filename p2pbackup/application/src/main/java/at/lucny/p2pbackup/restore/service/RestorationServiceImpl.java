@@ -280,7 +280,9 @@ public class RestorationServiceImpl implements RestorationService {
             }
         }
 
-        LOGGER.info("requested {} blocks for restore", nrOfRequestedBlocks);
+        if (nrOfRequestedBlocks > 0) {
+            LOGGER.info("requested {} blocks total for restore", nrOfRequestedBlocks);
+        }
     }
 
     private void restoreBlock(BlockMetaData block) {

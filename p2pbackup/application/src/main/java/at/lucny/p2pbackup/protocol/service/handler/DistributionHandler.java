@@ -70,7 +70,9 @@ public class DistributionHandler extends MessageToMessageDecoder<ProtocolMessage
         LOGGER.debug("saved block {} on user {}", backupBlockSuccess.getId(), userId);
         this.distributionService.addLocationToBlock(backupBlockSuccess.getId(), userId);
         boolean enoughBackupLocationsExist = this.distributionService.hasEnoughVerifiedReplicas(backupBlockSuccess.getId());
+        LOGGER.trace("block {} has enough backup locations: {}", backupBlockSuccess.getId(), enoughBackupLocationsExist);
         if (enoughBackupLocationsExist) {
+            LOGGER.debug("delete block {} from cloud-upload", backupBlockSuccess.getId());
             this.cloudUploadService.removeCloudUploadByBlockMetaDataId(backupBlockSuccess.getId());
         }
     }
