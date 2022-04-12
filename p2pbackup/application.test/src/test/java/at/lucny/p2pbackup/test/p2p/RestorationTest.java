@@ -11,6 +11,7 @@ import at.lucny.p2pbackup.core.repository.RootDirectoryRepository;
 import at.lucny.p2pbackup.localstorage.service.RestorationStorageServiceImpl;
 import at.lucny.p2pbackup.restore.repository.RestorePathRepository;
 import at.lucny.p2pbackup.restore.service.RestorationService;
+import at.lucny.p2pbackup.restore.service.RestoreManagementService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -73,8 +74,9 @@ class RestorationTest extends BaseP2PTest {
         this.setupData();
 
         RootDirectory rootDirectory = this.ctxUser1.getBean(RootDirectoryRepository.class).findAll().get(0);
+        RestoreManagementService restoreManagementService1 = this.ctxUser1.getBean(RestoreManagementService.class);
+        restoreManagementService1.beginRestore(rootDirectory, LocalDateTime.now(ZoneOffset.UTC), this.getRestoreDir("user1"));
         RestorationService restorationService1 = this.ctxUser1.getBean(RestorationService.class);
-        restorationService1.beginRestore(rootDirectory, LocalDateTime.now(ZoneOffset.UTC), this.getRestoreDir("user1"));
 
         await().untilAsserted(() -> {
             restorationService1.restoreBlocks();

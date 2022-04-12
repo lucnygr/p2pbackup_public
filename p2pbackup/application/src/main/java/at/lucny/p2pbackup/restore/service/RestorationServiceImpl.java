@@ -2,9 +2,9 @@ package at.lucny.p2pbackup.restore.service;
 
 import at.lucny.p2pbackup.configuration.support.ConfigurationConstants;
 import at.lucny.p2pbackup.configuration.support.RecoveryState;
-import at.lucny.p2pbackup.core.domain.*;
+import at.lucny.p2pbackup.core.domain.BlockMetaData;
+import at.lucny.p2pbackup.core.domain.DataLocation;
 import at.lucny.p2pbackup.core.repository.BlockMetaDataRepository;
-import at.lucny.p2pbackup.core.repository.PathDataRepository;
 import at.lucny.p2pbackup.core.repository.PathVersionRepository;
 import at.lucny.p2pbackup.core.support.FileUtils;
 import at.lucny.p2pbackup.localstorage.service.RestorationStorageService;
@@ -41,7 +41,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.time.LocalDateTime;
 import java.util.*;
 
 @Validated
@@ -49,8 +48,6 @@ import java.util.*;
 public class RestorationServiceImpl implements RestorationService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RestorationServiceImpl.class);
-
-    private final PathDataRepository pathDataRepository;
 
     private final PathVersionRepository pathVersionRepository;
 
@@ -70,8 +67,7 @@ public class RestorationServiceImpl implements RestorationService {
 
     private final FileUtils fileUtils = new FileUtils();
 
-    public RestorationServiceImpl(PathDataRepository pathDataRepository, PathVersionRepository pathVersionRepository, RestorePathRepository restorePathRepository, RestoreBlockDataRepository restoreBlockDataRepository, RestorationStorageService restorationStorageService, BlockMetaDataRepository blockMetaDataRepository, @Lazy ClientService clientService, PlatformTransactionManager txManager, Configuration configuration) {
-        this.pathDataRepository = pathDataRepository;
+    public RestorationServiceImpl(PathVersionRepository pathVersionRepository, RestorePathRepository restorePathRepository, RestoreBlockDataRepository restoreBlockDataRepository, RestorationStorageService restorationStorageService, BlockMetaDataRepository blockMetaDataRepository, @Lazy ClientService clientService, PlatformTransactionManager txManager, Configuration configuration) {
         this.pathVersionRepository = pathVersionRepository;
         this.restorePathRepository = restorePathRepository;
         this.restoreBlockDataRepository = restoreBlockDataRepository;
@@ -80,40 +76,6 @@ public class RestorationServiceImpl implements RestorationService {
         this.clientService = clientService;
         this.txManager = txManager;
         this.configuration = configuration;
-    }
-
-    @Override
-    @Transactional
-    public void beginRestore(RootDirectory rootDirectory, LocalDateTime forDate, Path targetDir) {
-        LOGGER.trace("begin beginRestore(rootDirectory={}, forDate={}, targetDir={}", rootDirectory, forDate, targetDir);
-        LOGGER.info("start restore for directory {}", rootDirectory.getPath());
-
-        List<PathData> pathDataList = this.pathDataRepository.findByRootDirectoryAndPathVersionForDateExists(rootDirectory, forDate);
-        for (PathData pathData : pathDataList) {
-            Optional<PathVersion> relevantVersion = pathData.getVersions().stream()
-                    .filter(pv -> !pv.getDate().isAfter(forDate)) // remove all versions that are after the given restore date (should already be done via sql)
-                    .reduce((first, second) -> { // calculate the latest/nearest version to the given restore date
-                        if (first.getDate().isBefore(second.getDate())) {
-                            return second;
-                        }
-                        return first;
-                    })
-                    .filter(v -> !v.getDeleted()); // if the latest version is a deleted version we must not restore this file
-            if (relevantVersion.isEmpty()) {
-                continue;
-            }
-
-            PathVersion pathVersion = this.pathVersionRepository.findByIdFetchBlockMetaData(relevantVersion.get().getId());
-            RestorePath restorePath = new RestorePath(pathVersion, targetDir.resolve(pathData.getPath()).toString());
-
-            for (BlockMetaData blockMetaData : pathVersion.getBlocks()) {
-                RestoreBlockData restoreBlockData = this.restoreBlockDataRepository.findByBlockMetaDataId(blockMetaData.getId()).orElse(this.restoreBlockDataRepository.save(new RestoreBlockData(blockMetaData, RestoreType.RESTORE)));
-                restorePath.getMissingBlocks().add(restoreBlockData);
-            }
-            this.restorePathRepository.save(restorePath);
-        }
-
-        LOGGER.trace("end beginRestore");
     }
 
     @Override
@@ -358,6 +320,6 @@ public class RestorationServiceImpl implements RestorationService {
             this.restoreBlockDataRepository.delete(restoreBlockData);
         }
 
-        LOGGER.trace("end saveBlock");
+        LOGGER.trace("end saveBlock(blockId={}, data={} remaining", blockId, data.remaining());
     }
 }

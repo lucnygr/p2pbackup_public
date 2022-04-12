@@ -5,7 +5,7 @@ import at.lucny.p2pbackup.backup.service.BackupService;
 import at.lucny.p2pbackup.core.domain.RootDirectory;
 import at.lucny.p2pbackup.restore.domain.RecoverBackupIndex;
 import at.lucny.p2pbackup.restore.service.RecoveryService;
-import at.lucny.p2pbackup.restore.service.RestorationService;
+import at.lucny.p2pbackup.restore.service.RestoreManagementService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.shell.standard.ShellComponent;
@@ -27,15 +27,15 @@ public class RestoreCommands {
 
     private final BackupService backupService;
 
-    private final RestorationService restorationService;
+    private final RestoreManagementService restoreManagementService;
 
     private final RecoveryService recoveryService;
 
     private final RestoreAgent restoreAgent;
 
-    public RestoreCommands(BackupService backupService, RestorationService restorationService, RecoveryService recoveryService, RestoreAgent restoreAgent) {
+    public RestoreCommands(BackupService backupService, RestoreManagementService restoreManagementService, RecoveryService recoveryService, RestoreAgent restoreAgent) {
         this.backupService = backupService;
-        this.restorationService = restorationService;
+        this.restoreManagementService = restoreManagementService;
         this.recoveryService = recoveryService;
         this.restoreAgent = restoreAgent;
     }
@@ -55,7 +55,7 @@ public class RestoreCommands {
         }
 
         RootDirectory rootDirectory = optionalRootDirectory.get();
-        this.restorationService.beginRestore(rootDirectory, LocalDateTime.now(ZoneOffset.UTC), directory);
+        this.restoreManagementService.beginRestore(rootDirectory, LocalDateTime.now(ZoneOffset.UTC), directory);
         this.restoreAgent.restore();
         LOGGER.info("started restore for directory {}", targetDirectory);
     }
@@ -77,7 +77,7 @@ public class RestoreCommands {
 
         LocalDateTime dateTime = LocalDateTime.parse(date);
 
-        this.restorationService.beginRestore(optionalRootDirectory.get(), dateTime, directory);
+        this.restoreManagementService.beginRestore(optionalRootDirectory.get(), dateTime, directory);
         this.restoreAgent.restore();
         LOGGER.info("started restore for directory {}", targetDirectory);
     }
