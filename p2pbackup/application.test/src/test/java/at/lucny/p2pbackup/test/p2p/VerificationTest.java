@@ -50,8 +50,10 @@ class VerificationTest extends BaseP2PTest {
 
         ctxUser1.getBean(BackupAgent.class).backup();
         await().untilAsserted(() -> assertThat(ctxUser1.getBean(BlockMetaDataRepository.class).count()).isEqualTo(5));// 2 data-block + 2 version-block + 1 backup-index-block
-        ctxUser1.getBean(CloudUploadAgent.class).upload();
-        await().untilAsserted(() -> assertThat(ctxUser1.getBean(CloudUploadRepository.class).findAllByShareUrlIsNotNull(Pageable.unpaged())).hasSize(5));
+        await().untilAsserted(() -> {
+            ctxUser1.getBean(CloudUploadAgent.class).upload();
+            assertThat(ctxUser1.getBean(CloudUploadRepository.class).findAllByShareUrlIsNotNull(Pageable.unpaged())).hasSize(5);
+        });
         ctxUser1.getBean(DistributionAgent.class).distribute();
 
         DataLocationRepository dataLocationRepository1 = ctxUser1.getBean(DataLocationRepository.class);
@@ -99,8 +101,10 @@ class VerificationTest extends BaseP2PTest {
 
         ctxUser1.getBean(BackupAgent.class).backup();
         await().untilAsserted(() -> assertThat(ctxUser1.getBean(BlockMetaDataRepository.class).count()).isEqualTo(3));// 1 data-block + 1 version-block + 1 backup-index-block
-        ctxUser1.getBean(CloudUploadAgent.class).upload();
-        await().untilAsserted(() -> assertThat(ctxUser1.getBean(CloudUploadRepository.class).findAllByShareUrlIsNotNull(Pageable.unpaged())).hasSize(3));
+        await().untilAsserted(() -> {
+            ctxUser1.getBean(CloudUploadAgent.class).upload();
+            assertThat(ctxUser1.getBean(CloudUploadRepository.class).findAllByShareUrlIsNotNull(Pageable.unpaged())).hasSize(3);
+        });
         ctxUser1.getBean(DistributionAgent.class).distribute();
 
         DataLocationRepository dataLocationRepository1 = ctxUser1.getBean(DataLocationRepository.class);
@@ -148,8 +152,10 @@ class VerificationTest extends BaseP2PTest {
 
         ctxUser1.getBean(BackupAgent.class).backup();
         await().untilAsserted(() -> assertThat(ctxUser1.getBean(BlockMetaDataRepository.class).count()).isEqualTo(3));// 1 data-block + 1 version-block + 1 backup-index-block
-        ctxUser1.getBean(CloudUploadAgent.class).upload();
-        await().untilAsserted(() -> assertThat(ctxUser1.getBean(CloudUploadRepository.class).findAllByShareUrlIsNotNull(Pageable.unpaged())).hasSize(3));
+        await().untilAsserted(() -> {
+            ctxUser1.getBean(CloudUploadAgent.class).upload();
+            assertThat(ctxUser1.getBean(CloudUploadRepository.class).findAllByShareUrlIsNotNull(Pageable.unpaged())).hasSize(3);
+        });
         ctxUser1.getBean(DistributionAgent.class).distribute();
 
         DataLocationRepository dataLocationRepository1 = ctxUser1.getBean(DataLocationRepository.class);
@@ -208,8 +214,10 @@ class VerificationTest extends BaseP2PTest {
 
         ctxUser1.getBean(BackupAgent.class).backup();
         await().untilAsserted(() -> assertThat(ctxUser1.getBean(BlockMetaDataRepository.class).count()).isEqualTo(5));// 2 data-block + 2 version-block + 1 backup-index-block
-        ctxUser1.getBean(CloudUploadAgent.class).upload();
-        await().untilAsserted(() -> assertThat(ctxUser1.getBean(CloudUploadRepository.class).findAllByShareUrlIsNotNull(Pageable.unpaged())).hasSize(5));
+        await().untilAsserted(() -> {
+            ctxUser1.getBean(CloudUploadAgent.class).upload();
+            assertThat(ctxUser1.getBean(CloudUploadRepository.class).findAllByShareUrlIsNotNull(Pageable.unpaged())).hasSize(5);
+        });
         ctxUser1.getBean(DistributionAgent.class).distribute();
 
         DataLocationRepository dataLocationRepository1 = ctxUser1.getBean(DataLocationRepository.class);
@@ -252,8 +260,10 @@ class VerificationTest extends BaseP2PTest {
 
         ctxUser1.getBean(BackupAgent.class).backup();
         await().untilAsserted(() -> assertThat(ctxUser1.getBean(BlockMetaDataRepository.class).count()).isEqualTo(3));// 1 data-block + 1 version-block + 1 backup-index-block
-        ctxUser1.getBean(CloudUploadAgent.class).upload();
-        await().untilAsserted(() -> assertThat(ctxUser1.getBean(CloudUploadRepository.class).findAllByShareUrlIsNotNull(Pageable.unpaged())).hasSize(3));
+        await().untilAsserted(() -> {
+            ctxUser1.getBean(CloudUploadAgent.class).upload();
+            assertThat(ctxUser1.getBean(CloudUploadRepository.class).findAllByShareUrlIsNotNull(Pageable.unpaged())).hasSize(3);
+        });
         ctxUser1.getBean(DistributionAgent.class).distribute();
 
         DataLocationRepository dataLocationRepository1 = ctxUser1.getBean(DataLocationRepository.class);

@@ -28,8 +28,6 @@ public interface CloudUploadRepository extends JpaRepository<CloudUpload, String
      * @param id the block-meta-data-id of the block thats associated with the entity
      * @return an optional containing the entity
      */
-    // use pessimistic-write-lock because its highly likely that multiple threads are trying to access and delete the same cloud-upload-entity
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<CloudUpload> findByBlockMetaDataId(String id);
 
     /**
@@ -38,8 +36,6 @@ public interface CloudUploadRepository extends JpaRepository<CloudUpload, String
      * @param id the id of the entity
      * @return an optional containing the entity
      */
-    // use pessimistic-write-lock because its highly likely that multiple threads are trying to access and delete the same cloud-upload-entity
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<CloudUpload> findById(String id);
 /*
     @Query("SELECT cu.id FROM CloudUpload cu " +

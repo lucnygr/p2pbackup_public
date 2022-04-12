@@ -48,8 +48,10 @@ class RestorationTest extends BaseP2PTest {
         int nrOfBlocks = 6 + 1 + contentOfBigFile.length / (FixedSizeChunkerServiceImpl.BLOCK_SIZE) + 1;
         ctxUser1.getBean(BackupAgent.class).backup();
         await().untilAsserted(() -> assertThat(ctxUser1.getBean(BlockMetaDataRepository.class).count()).isEqualTo(nrOfBlocks));
-        ctxUser1.getBean(CloudUploadAgent.class).upload();
-        await().untilAsserted(() -> assertThat(ctxUser1.getBean(CloudUploadRepository.class).findAllByShareUrlIsNotNull(Pageable.unpaged())).hasSize(nrOfBlocks));
+        await().untilAsserted(() -> {
+            ctxUser1.getBean(CloudUploadAgent.class).upload();
+            assertThat(ctxUser1.getBean(CloudUploadRepository.class).findAllByShareUrlIsNotNull(Pageable.unpaged())).hasSize(nrOfBlocks);
+        });
         ctxUser1.getBean(DistributionAgent.class).distribute();
 
         await().untilAsserted(() -> assertThat(ctxUser1.getBean(CloudUploadRepository.class).count()).isZero());
