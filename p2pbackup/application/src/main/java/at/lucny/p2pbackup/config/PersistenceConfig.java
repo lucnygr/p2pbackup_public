@@ -30,7 +30,7 @@ public class PersistenceConfig {
         MACCheckingDataSource macCheckingDataSource = new MACCheckingDataSource(p2PBackupProperties, cryptoService);
 
         String dbUrl = databaseUrl;
-        if (p2PBackupProperties.getDatabase().getEncrypt()) {
+        if (Boolean.TRUE.equals(p2PBackupProperties.getDatabase().getEncrypt())) {
             String hexPassword = HexFormat.of().formatHex(cryptoService.getSecretKeyGenerator().generate(SALT_KDF_DATABASE_KEY).getEncoded());
             String hexIv = HexFormat.of().formatHex(cryptoService.getSecretKeyGenerator().generate(SALT_KDF_DATABASE_IV, 128).getEncoded());
             dbUrl = databaseUrl + ";crypt_key=" + hexPassword + ";crypt_iv=" + hexIv + ";crypt_type=AES/CBC/PKCS5Padding";

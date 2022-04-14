@@ -20,7 +20,6 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManagerFactory;
-import javax.security.auth.DestroyFailedException;
 import java.io.Console;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -51,7 +50,7 @@ public class CryptoServiceImpl implements CryptoService {
 
     private final KeyManagerFactory tlsKeyManagerFactory;
 
-    public CryptoServiceImpl(P2PBackupProperties p2PBackupProperties, CryptoUtils cryptoUtils, @Lazy UserRepository userRepository, @Value("${at.lucny.p2p-backup.password:}") String givenPassword) throws IOException, KeyStoreException, CertificateEncodingException, DestroyFailedException {
+    public CryptoServiceImpl(P2PBackupProperties p2PBackupProperties, CryptoUtils cryptoUtils, @Lazy UserRepository userRepository, @Value("${at.lucny.p2p-backup.password:}") String givenPassword) throws IOException, KeyStoreException, CertificateEncodingException {
         LOGGER.info("creating crypto-service");
         this.p2PBackupProperties = p2PBackupProperties;
         this.userRepository = userRepository;

@@ -68,7 +68,6 @@ public class ChunkIterator implements Iterator<Block> {
         try {
             ByteBuffer buffer;
 
-            // TODO does this reuse really work?
             if (this.previousByteBuffer != null && !this.previousByteBuffer.hasRemaining()) {
                 this.previousByteBuffer.clear();
                 buffer = this.previousByteBuffer;

@@ -13,7 +13,7 @@ public class StatisticCommands {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(StatisticCommands.class);
 
-    private final String LINE = "------------------------\n";
+    private static final String LINE = "------------------------\n";
 
     private final DistributionService distributionService;
 
