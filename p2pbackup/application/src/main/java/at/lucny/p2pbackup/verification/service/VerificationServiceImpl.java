@@ -92,7 +92,7 @@ public class VerificationServiceImpl implements VerificationService {
     public void verifyBlocks() {
         LOGGER.trace("start verifyBlocks()");
 
-        List<String> onlineUsers = this.clientService.getOnlineClients().stream().map(NettyClient::getUser).map(User::getId).toList();
+        List<String> onlineUsers = this.clientService.getOnlineClients().stream().map(NettyClient::getUser).filter(User::isAllowBackupDataToUser).map(User::getId).toList();
 
         if (CollectionUtils.isEmpty(onlineUsers)) {
             LOGGER.info("no other users online");

@@ -166,7 +166,7 @@ public class NextcloudStorageServiceImpl implements CloudStorageService {
             LOGGER.trace("end share(filename={}): return={}", filename, publicUrl);
             return publicUrl;
         } catch (NextcloudApiException e) {
-            if (e.getCause() instanceof HttpResponseException ex && ex.getStatusCode() == 404) {// ignore 404 because this means the file as already deleted
+            if (e.getCause() instanceof HttpResponseException ex && ex.getStatusCode() == 404) {
                 throw new IllegalArgumentException("remote-path " + remoteFilename + " does not exist");
             }
             throw e;

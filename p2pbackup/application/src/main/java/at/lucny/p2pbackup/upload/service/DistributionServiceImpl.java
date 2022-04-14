@@ -14,6 +14,7 @@ import at.lucny.p2pbackup.network.dto.RestoreBlockFor;
 import at.lucny.p2pbackup.network.service.ClientService;
 import at.lucny.p2pbackup.network.service.NettyClient;
 import at.lucny.p2pbackup.network.service.listener.SuccessListener;
+import at.lucny.p2pbackup.user.domain.User;
 import com.google.common.collect.Lists;
 import io.netty.channel.ChannelFuture;
 import org.slf4j.Logger;
@@ -97,9 +98,9 @@ public class DistributionServiceImpl implements DistributionService {
         }
         LOGGER.info("prepare to distribute up to {} blocks", totalNrOfDistributableBlocks);
 
-        List<String> onlineUsers = this.clientService.getOnlineClients().stream().map(c -> c.getUser().getId()).toList();
+        List<String> onlineUsers = this.clientService.getOnlineClients().stream().map(NettyClient::getUser).filter(User::isAllowBackupDataToUser).map(User::getId).toList();
         if (CollectionUtils.isEmpty(onlineUsers)) {
-            LOGGER.info("no other users online");
+            LOGGER.info("no other users that are a valid backup-target are online");
             return;
         }
 
