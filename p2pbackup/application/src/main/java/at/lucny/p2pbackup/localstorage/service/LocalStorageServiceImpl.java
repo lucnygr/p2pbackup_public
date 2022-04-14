@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.FileSystemUtils;
 import org.springframework.validation.annotation.Validated;
 
@@ -253,19 +254,18 @@ public class LocalStorageServiceImpl implements LocalStorageService {
 
     @Override
     public List<Path> loadFromLocalStorageByPrefix(String userId, String prefix) {
-        Path userStorageDir = this.p2PBackupProperties.getStorageDir().resolve(userId);
-        try (Stream<Path> allPaths = Files.list(userStorageDir)) {
-            return allPaths.filter(p -> p.getFileName().toString().startsWith(prefix)).toList();
-        } catch (IOException e) {
-            throw new IllegalStateException("unable to load files from " + userStorageDir, e);
+        List<Path> files = this.loadAllFromLocalStorage(userId);
+        if (CollectionUtils.isEmpty(files)) {
+            return new ArrayList<>();
         }
+        return files.stream().filter(p -> p.getFileName().toString().startsWith(prefix)).toList();
     }
 
     private List<Path> loadAllFromLocalStorage(String userId) {
         LOGGER.trace("begin loadAllFromLocalStorage(userId={})", userId);
         List<Path> files = null;
         Path userDir = this.p2PBackupProperties.getStorageDir().resolve(userId);
-        if(!Files.isDirectory(userDir)) {
+        if (!Files.isDirectory(userDir)) {
             return new ArrayList<>();
         }
         try (Stream<Path> allPaths = Files.list(userDir)) {
@@ -283,6 +283,9 @@ public class LocalStorageServiceImpl implements LocalStorageService {
     public List<String> getBlockIds(String userId) {
         LOGGER.trace("begin getBlockIds");
         List<Path> blocks = this.loadAllFromLocalStorage(userId);
+        if (CollectionUtils.isEmpty(blocks)) {
+            return new ArrayList<>();
+        }
         Path userDir = this.p2PBackupProperties.getStorageDir().resolve(userId);
         List<String> files = blocks.stream().map(p -> userDir.relativize(p).toString()).toList();
         LOGGER.trace("end getBlockIds: return {}", files);
