@@ -4,11 +4,9 @@ import at.lucny.p2pbackup.core.domain.CloudUpload;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import javax.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,10 +35,6 @@ public interface CloudUploadRepository extends JpaRepository<CloudUpload, String
      * @return an optional containing the entity
      */
     Optional<CloudUpload> findById(String id);
-/*
-    @Query("SELECT cu.id FROM CloudUpload cu " +
-            " WHERE cu.shareUrl IS NOT NULL ")
-    Page<String> findIdByShareUrlIsNotNull(Pageable pageRequest);*/
 
     @Query("SELECT cu.id FROM CloudUpload cu " +
             " INNER JOIN cu.blockMetaData bmd " +

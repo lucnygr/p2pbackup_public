@@ -6,7 +6,6 @@ import at.lucny.p2pbackup.cloud.CloudStorageServiceProvider;
 import at.lucny.p2pbackup.core.domain.BlockMetaData;
 import at.lucny.p2pbackup.core.domain.CloudUpload;
 import at.lucny.p2pbackup.core.service.BlockEncryptionService;
-import at.lucny.p2pbackup.core.support.HashUtils;
 import at.lucny.p2pbackup.localstorage.dto.LocalStorageEntry;
 import at.lucny.p2pbackup.localstorage.service.LocalStorageService;
 import at.lucny.p2pbackup.restore.service.worker.RecoverMetadataWorker;
@@ -47,8 +46,6 @@ public class RestoreCloudUploadServiceImpl implements RestoreCloudUploadService 
     private final VerificationValueService verificationValueService;
 
     private final RecoveryService recoveryService;
-
-    private final HashUtils hashUtils = new HashUtils();
 
     public RestoreCloudUploadServiceImpl(CloudStorageServiceProvider cloudStorageServiceProvider, LocalStorageService localStorageService, BlockEncryptionService blockEncryptionService, CloudUploadService cloudUploadService, RecoverMetadataWorker recoverMetadataWorker, VerificationValueService verificationValueService, RecoveryService recoveryService) {
         this.cloudStorageServiceProvider = cloudStorageServiceProvider;
@@ -103,21 +100,7 @@ public class RestoreCloudUploadServiceImpl implements RestoreCloudUploadService 
             this.blockEncryptionService.decrypt(dataInByteBuffer, blockId.getBytes(StandardCharsets.UTF_8), plainData -> {
                 if (bmd.getId().startsWith(BackupConstants.BACKUP_INDEX_BLOCK_PREFIX)) {
                     this.recoveryService.recoverBackupIndex(null, plainData.duplicate());
-                    return;
                 }
-                /*
-                // is the block a path-data-version-block? ignore it, it will be restored via the RestoreService
-                Optional<PathDataVersion> optionalPathDataVersion = this.recoverMetadataWorker.parsePathDataVersion(plainData.duplicate());
-                if (optionalPathDataVersion.isPresent()) {
-                    LOGGER.debug("block {} is a PathDataVersion-block", blockId);
-                    //this.recoverMetadataWorker.recoverPathVersion(blockId, optionalPathDataVersion.get());
-                    return;
-                }
-                // otherwise it's a data-block
-                LOGGER.debug("block {} is a data-block", blockId);
-                String hash = this.hashUtils.generateBlockHash(plainData.duplicate());
-                this.recoverMetadataWorker.createOrUpdateBlockMetaData(blockId, hash);
-                 */
             });
 
             LOGGER.trace("generate verificationValues for block {}", blockId);

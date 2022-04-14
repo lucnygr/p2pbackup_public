@@ -6,7 +6,7 @@ import java.nio.file.Path;
 
 public class BackupFileEvent extends ApplicationEvent {
 
-    private final Path file;
+    private final transient Path file;
 
     public BackupFileEvent(Object source, Path file) {
         super(source);

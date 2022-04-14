@@ -1,5 +1,7 @@
 package at.lucny.p2pbackup.verification.service;
 
+import at.lucny.p2pbackup.application.config.VerificationProperties;
+
 import javax.validation.constraints.NotNull;
 
 public interface VerificationService {
@@ -11,8 +13,20 @@ public interface VerificationService {
 
     void deleteLocationFromBlock(@NotNull String blockMetaDataId, @NotNull String userId);
 
+    /**
+     * Marks the data-location of the block at the given user as verified by setting the verified-date to NOW.
+     *
+     * @param blockMetaDataId the id of the block
+     * @param userId          the saving user
+     */
     void markLocationVerified(@NotNull String blockMetaDataId, @NotNull String userId);
 
+    /**
+     * Marks the data-location of the block at the given user as unverified by setting the verified-date to NOW - {@link VerificationProperties#getDurationBeforeVerificationInvalid()}.
+     *
+     * @param blockMetaDataId the id of the block
+     * @param userId          the saving user
+     */
     void markLocationUnverified(@NotNull String blockMetaDataId, @NotNull String userId);
 
     /**
@@ -25,4 +39,12 @@ public interface VerificationService {
      * @return if the user is a valid backup-location for the block, otherwise false
      */
     boolean verifyHashOfLocation(@NotNull String blockMetaDataId, @NotNull String userId, @NotNull String challenge, @NotNull String hash);
+
+    /**
+     * Marks all data-locations of the user for verification by setting the verified-date to NOW - {@link VerificationProperties#getDurationBetweenVerifications()}.
+     * The locations still count as valid, but this triggers verification-requests for all blocks.
+     *
+     * @param userId the id of the user
+     */
+    void markLocationsForVerification(@NotNull String userId);
 }

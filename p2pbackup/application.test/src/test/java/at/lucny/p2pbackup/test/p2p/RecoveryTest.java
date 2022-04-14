@@ -26,6 +26,7 @@ import static at.lucny.p2pbackup.backup.service.FixedSizeChunkerServiceImpl.BLOC
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+/*
 @ExtendWith(SpringExtension.class)
 class RecoveryTest extends BaseP2PTest {
 
@@ -95,7 +96,7 @@ class RecoveryTest extends BaseP2PTest {
 
 
 
-        /*
+
         RootDirectory rootDirectory = this.ctxUser1.getBean(RootDirectoryRepository.class).findAll().get(0);
         RestorationService restorationService1 = this.ctxUser1.getBean(RestorationService.class);
         restorationService1.beginRestore(rootDirectory, LocalDateTime.now(ZoneOffset.UTC), this.getRestoreDir("user1"));
@@ -120,7 +121,7 @@ class RecoveryTest extends BaseP2PTest {
 
         Path bigfileInRestoreDirectory = this.getRestoreDir("user1").resolve("subdir").resolve("testfile_big.txt");
         assertThat(bigfileInRestoreDirectory).exists();
-        assertThat(Files.readAllBytes(bigfileInRestoreDirectory)).containsExactly(contentOfBigFile);*/
+        assertThat(Files.readAllBytes(bigfileInRestoreDirectory)).containsExactly(contentOfBigFile);
     }
 
-}
+}*/

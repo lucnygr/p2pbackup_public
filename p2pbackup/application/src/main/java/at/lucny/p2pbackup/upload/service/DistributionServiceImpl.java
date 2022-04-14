@@ -144,6 +144,7 @@ public class DistributionServiceImpl implements DistributionService {
                 LOGGER.debug("delete block {} from cloud-upload", cloudUpload.getBlockMetaData().getId());
                 this.cloudUploadService.removeCloudUpload(cloudUpload);
             }
+            LOGGER.info("deleted {} cloudUploads", cloudUploadsToDelete.size());
         }
 
         LOGGER.trace("end distributeBlocks");

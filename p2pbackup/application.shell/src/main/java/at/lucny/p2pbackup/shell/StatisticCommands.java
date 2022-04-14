@@ -13,6 +13,8 @@ public class StatisticCommands {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(StatisticCommands.class);
 
+    private final String LINE = "------------------------\n";
+
     private final DistributionService distributionService;
 
     public StatisticCommands(DistributionService distributionService) {
@@ -23,18 +25,18 @@ public class StatisticCommands {
     public void printReplicaStatistic() {
         Map<Integer, Long> statistics = this.distributionService.getNumberOfReplicasStatistic();
         StringBuilder sb = new StringBuilder("\nStatistic about total replicas\n");
-        sb.append("------------------------\n");
+        sb.append(LINE);
         for (Map.Entry<Integer, Long> entry : statistics.entrySet()) {
             sb.append(entry.getKey()).append(" replicas: ").append(entry.getValue()).append(" blocks \n");
         }
-        sb.append("------------------------\n");
+        sb.append(LINE);
 
         statistics = this.distributionService.getNumberOfVerifiedReplicasStatistic();
         sb.append("Statistic about verified replicas\n");
-        sb.append("------------------------\n");
+        sb.append(LINE);
         for (Map.Entry<Integer, Long> entry : statistics.entrySet()) {
             sb.append(entry.getKey()).append(" verified replicas: ").append(entry.getValue()).append(" blocks \n");
         }
-        LOGGER.info(sb.toString());
+        LOGGER.info("{}", sb);
     }
 }

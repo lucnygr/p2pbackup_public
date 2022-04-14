@@ -1,6 +1,8 @@
 package at.lucny.p2pbackup.shell;
 
-import at.lucny.p2pbackup.application.service.*;
+import at.lucny.p2pbackup.application.service.BackupAgent;
+import at.lucny.p2pbackup.application.service.CloudUploadAgent;
+import at.lucny.p2pbackup.application.service.DistributionAgent;
 import at.lucny.p2pbackup.application.support.StopApplicationEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,25 +23,19 @@ public class ApplicationCommands implements Quit.Command {
 
     private final ApplicationEventPublisher publisher;
 
-    private final VerificationAgent verificationAgent;
-
     private final DistributionAgent distributionAgent;
 
     private final BackupAgent backupAgent;
 
     private final CloudUploadAgent cloudUploadAgent;
 
-    private final RestoreAgent restoreAgent;
-
     private final List<AsyncTaskExecutor> asyncTaskExecutors;
 
-    public ApplicationCommands(ApplicationEventPublisher publisher, VerificationAgent verificationAgent, DistributionAgent distributionAgent, BackupAgent backupAgent, CloudUploadAgent cloudUploadAgent, RestoreAgent restoreAgent, List<AsyncTaskExecutor> asyncTaskExecutors) {
+    public ApplicationCommands(ApplicationEventPublisher publisher, DistributionAgent distributionAgent, BackupAgent backupAgent, CloudUploadAgent cloudUploadAgent, List<AsyncTaskExecutor> asyncTaskExecutors) {
         this.publisher = publisher;
-        this.verificationAgent = verificationAgent;
         this.distributionAgent = distributionAgent;
         this.backupAgent = backupAgent;
         this.cloudUploadAgent = cloudUploadAgent;
-        this.restoreAgent = restoreAgent;
         this.asyncTaskExecutors = asyncTaskExecutors;
     }
 
@@ -53,11 +49,6 @@ public class ApplicationCommands implements Quit.Command {
             }
         }
         throw new ExitRequest();
-    }
-
-    @ShellMethod(value = "verifies the necessary remote blocks")
-    public void verifyBlocks() {
-        this.verificationAgent.verify();
     }
 
     @ShellMethod("checks if new blocks need to be distributed")
@@ -76,11 +67,6 @@ public class ApplicationCommands implements Quit.Command {
     public void uploadBlocks() {
         this.cloudUploadAgent.upload();
         this.distributionAgent.distribute();
-    }
-
-    @ShellMethod("restores blocks from other users")
-    public void restoreBlocks() {
-        this.restoreAgent.restore();
     }
 
 }

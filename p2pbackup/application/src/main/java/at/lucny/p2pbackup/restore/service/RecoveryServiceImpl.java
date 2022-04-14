@@ -204,12 +204,13 @@ public class RecoveryServiceImpl implements RecoveryService {
                 return;
             }
 
-            LOGGER.debug("recover root-directory {} to directory {}", recoverRootDirectory.getName(), rootDirectoryRecoveryDir);
+            LOGGER.info("recover root-directory {} to directory {}", recoverRootDirectory.getName(), rootDirectoryRecoveryDir);
             Files.createDirectories(rootDirectoryRecoveryDir);
             if (!this.rootDirectoryRepository.existsById(recoverRootDirectory.getId())) {
                 this.rootDirectoryRepository.save(new RootDirectory(recoverRootDirectory.getId(), recoverRootDirectory.getName(), rootDirectoryRecoveryDir));
             }
         }
+        this.rootDirectoryRepository.flush();
 
         // create recover-tasks for all blocks
         Pageable page = PageRequest.of(0, 100, Sort.Direction.ASC, "id");

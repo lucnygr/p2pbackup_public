@@ -274,6 +274,7 @@ public class VerificationServiceImpl implements VerificationService {
     }
 
     @Override
+    @Transactional
     public void markLocationVerified(String blockMetaDataId, String userId) {
         Optional<DataLocation> optionalDataLocation = this.dataLocationRepository.findByBlockMetaDataIdAndUserId(blockMetaDataId, userId);
         if (optionalDataLocation.isEmpty()) {
@@ -281,5 +282,13 @@ public class VerificationServiceImpl implements VerificationService {
             return;
         }
         optionalDataLocation.get().setVerified(LocalDateTime.now(ZoneOffset.UTC));
+    }
+
+    @Override
+    @Transactional
+    public void markLocationsForVerification(String userId) {
+        LocalDateTime verificationInvalid = LocalDateTime.now(ZoneOffset.UTC).minus(this.p2PBackupProperties.getVerificationProperties().getDurationBetweenVerifications());
+        long updated = this.dataLocationRepository.updateVerifiedDateByUserId(userId, verificationInvalid);
+        LOGGER.info("reset verification date of {} blocks", updated);
     }
 }

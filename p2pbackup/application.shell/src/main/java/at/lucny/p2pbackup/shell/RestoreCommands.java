@@ -110,4 +110,10 @@ public class RestoreCommands {
         this.restoreAgent.restore();
     }
 
+
+    @ShellMethod("restores blocks from other users")
+    public void restoreBlocks() {
+        this.restoreAgent.restore();
+    }
+
 }
