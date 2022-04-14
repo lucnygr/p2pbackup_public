@@ -79,6 +79,18 @@ public class CloudUploadServiceImpl implements CloudUploadService {
 
     @Override
     @Transactional
+    public Optional<CloudUpload> updateCloudUpload(String cloudUploadId, String provider, String url) {
+        Optional<CloudUpload> cloudUploadOptional = this.cloudUploadRepository.findById(cloudUploadId);
+        if (cloudUploadOptional.isPresent()) {
+            cloudUploadOptional.get().setProviderId(provider);
+            cloudUploadOptional.get().setShareUrl(url);
+        }
+        return cloudUploadOptional;
+    }
+
+
+    @Override
+    @Transactional
     public CloudUpload saveCloudUpload(BlockMetaData bmd, String macSecret, String mac) {
         Optional<CloudUpload> upload = this.cloudUploadRepository.findByBlockMetaDataId(bmd.getId());
         if (upload.isPresent() && !upload.get().getEncryptedBlockMac().equals(mac)) {
@@ -91,6 +103,12 @@ public class CloudUploadServiceImpl implements CloudUploadService {
             CloudUpload cloudUpload = new CloudUpload(bmd, macSecret, mac);
             return this.cloudUploadRepository.save(cloudUpload);
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<CloudUpload> getCloudUpload(String bmdId) {
+        return this.cloudUploadRepository.findByBlockMetaDataId(bmdId);
     }
 
     @SneakyThrows
@@ -122,6 +140,7 @@ public class CloudUploadServiceImpl implements CloudUploadService {
 
             do {
                 backupBlocks = this.cloudUploadRepository.findAllByShareUrlIsNull(pageRequest);
+                LOGGER.info("processed {}/{} cloud-upload-entries", nrOfProcessedUploads, backupBlocks.getTotalElements());
                 List<CloudUpload> uploadsToDelete = new ArrayList<>();
                 List<CompletableFuture<Void>> futures = new ArrayList<>();
 
@@ -158,7 +177,6 @@ public class CloudUploadServiceImpl implements CloudUploadService {
                 }
 
                 allFutures.join();
-                LOGGER.info("processed {}/{} cloud-upload-entries", nrOfProcessedUploads, backupBlocks.getTotalElements());
             } while (backupBlocks.hasNext() && !this.shutdown);
 
             if (nrOfProcessedUploads > 0) {
