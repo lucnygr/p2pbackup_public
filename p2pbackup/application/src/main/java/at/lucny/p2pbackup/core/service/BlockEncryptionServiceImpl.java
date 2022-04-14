@@ -113,4 +113,17 @@ public class BlockEncryptionServiceImpl implements BlockEncryptionService {
             this.byteBufferPoolService.returnObject(key, plainData);
         }
     }
+
+    @Override
+    public void verify(ByteBuffer encryptedData, byte[] aead) {
+        Integer key = this.byteBufferPoolService.calculateBufferSize(encryptedData.remaining());
+        ByteBuffer plainData = this.byteBufferPoolService.borrowObject(key);
+
+        try {
+            // encrypt the block-content and write it into the encryptedDataBuffer
+            this.decrypt(encryptedData.duplicate(), aead, plainData);
+        } finally {
+            this.byteBufferPoolService.returnObject(key, plainData);
+        }
+    }
 }

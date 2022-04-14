@@ -24,7 +24,7 @@ public interface BlockEncryptionService {
      * @param aead      additional information to be integrity-checked, can be null
      * @param consumer  the encrypted data
      */
-    void encrypt(ByteBuffer plainData, byte[] aead, Consumer<ByteBuffer> consumer);
+    void encrypt(@NotNull ByteBuffer plainData, @NotNull byte[] aead, @NotNull Consumer<ByteBuffer> consumer);
 
     /**
      * Decrypts the remaining data of the encryptedData-ByteBuffer onto the plainData-ByteBuffer.
@@ -44,6 +44,8 @@ public interface BlockEncryptionService {
      * @param aead          additional information to be integrity-checked, can be null
      * @param consumer      the plain data
      */
-    void decrypt(ByteBuffer encryptedData, byte[] aead, Consumer<ByteBuffer> consumer);
+    void decrypt(@NotNull ByteBuffer encryptedData, @NotNull byte[] aead, @NotNull Consumer<ByteBuffer> consumer);
+
+    void verify(@NotNull ByteBuffer encryptedData, @NotNull byte[] aead);
 
 }
