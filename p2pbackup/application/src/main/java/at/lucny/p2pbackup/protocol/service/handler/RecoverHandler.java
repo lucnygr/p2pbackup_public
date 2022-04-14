@@ -97,11 +97,10 @@ public class RecoverHandler extends MessageToMessageDecoder<ProtocolMessageWrapp
                 this.blockEncryptionService.decrypt(recoverBackupIndexResponse.getLatestBackupIndex().asReadOnlyByteBuffer(), recoverBackupIndexResponse.getLatestBackupIndexId().getBytes(StandardCharsets.UTF_8), plainDataBuffer -> {
                     // save found version of backupIndex
                     this.recoveryService.recoverBackupIndex(userId, plainDataBuffer.duplicate());
-
-                    // mark location of backupIndex as verified and generate verification values for block
-                    this.verificationService.markLocationVerified(recoverBackupIndexResponse.getLatestBackupIndexId(), userId);
-                    this.verificationValueService.ensureVerificationValues(recoverBackupIndexResponse.getLatestBackupIndexId(), recoverBackupIndexResponse.getLatestBackupIndex().asReadOnlyByteBuffer());
                 });
+                // mark location of backupIndex as verified and generate verification values for block
+                this.verificationService.markLocationVerified(recoverBackupIndexResponse.getLatestBackupIndexId(), userId);
+                this.verificationValueService.ensureVerificationValues(recoverBackupIndexResponse.getLatestBackupIndexId(), recoverBackupIndexResponse.getLatestBackupIndex().asReadOnlyByteBuffer());
             } catch (RuntimeException e) {
                 LOGGER.warn("unable to restore backup-index-block {} from user {} due to exception", recoverBackupIndexResponse.getLatestBackupIndexId(), userId, e);
                 this.verificationService.markLocationUnverified(recoverBackupIndexResponse.getLatestBackupIndexId(), userId);
