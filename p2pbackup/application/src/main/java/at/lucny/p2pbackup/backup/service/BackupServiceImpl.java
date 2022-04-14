@@ -1,6 +1,7 @@
 package at.lucny.p2pbackup.backup.service;
 
 import at.lucny.p2pbackup.backup.dto.Block;
+import at.lucny.p2pbackup.backup.service.worker.BackupServiceWorker;
 import at.lucny.p2pbackup.backup.support.BackupFileEvent;
 import at.lucny.p2pbackup.core.domain.BlockMetaData;
 import at.lucny.p2pbackup.core.domain.PathVersion;

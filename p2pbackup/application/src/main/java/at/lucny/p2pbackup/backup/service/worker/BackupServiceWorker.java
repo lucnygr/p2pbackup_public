@@ -1,4 +1,4 @@
-package at.lucny.p2pbackup.backup.service;
+package at.lucny.p2pbackup.backup.service.worker;
 
 import at.lucny.p2pbackup.backup.dto.BackupIndex;
 import at.lucny.p2pbackup.backup.dto.BackupRootDirectory;
@@ -35,7 +35,7 @@ import java.util.Set;
 
 @Service
 @Validated
-class BackupServiceWorker {
+public class BackupServiceWorker {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BackupServiceWorker.class);
 
