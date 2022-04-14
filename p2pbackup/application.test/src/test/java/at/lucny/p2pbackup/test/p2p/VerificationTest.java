@@ -191,13 +191,7 @@ class VerificationTest extends BaseP2PTest {
             assertThat(location.getVerified()).as("new verification date %s of location should be after the old verification date %s (that was set in the past)", location.getVerified(), oldLocation.getVerified()).isAfter(oldLocation.getVerified());
             assertThat(location.getVerified()).isBetween(LocalDateTime.now(ZoneOffset.UTC).minus(p2PBackupProperties1.getVerificationProperties().getDurationBetweenVerifications()), LocalDateTime.now(ZoneOffset.UTC));
 
-            Optional<ActiveVerificationValue> activeVerificationValue = activeVerificationValueRepository1.findByBlockMetaDataId(location.getBlockMetaData().getId());
-            assertThat(activeVerificationValue).isPresent();
-            assertThat(activeVerificationValue.get().getId()).isNotNull();
-            assertThat(activeVerificationValue.get().getBlockMetaData().getId()).isEqualTo(location.getBlockMetaData().getId());
-            assertThat(activeVerificationValue.get().getActiveUntil()).isBetween(LocalDateTime.now(ZoneOffset.UTC), LocalDateTime.now(ZoneOffset.UTC).plus(p2PBackupProperties1.getVerificationProperties().getDurationBetweenVerifications()));
-
-            assertThat(verificationValueRepository1.findByBlockMetaDataIdOrderByIdAsc(location.getBlockMetaData().getId())).hasSize(11);
+            assertThat(verificationValueRepository1.findByBlockMetaDataIdOrderByIdAsc(location.getBlockMetaData().getId())).hasSize(12);
 
             // the requested block should not be stored locally
             assertThat(Files.exists(pathToBlock)).isFalse();
