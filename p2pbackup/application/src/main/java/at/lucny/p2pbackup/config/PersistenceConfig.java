@@ -2,6 +2,7 @@ package at.lucny.p2pbackup.config;
 
 import at.lucny.p2pbackup.application.config.P2PBackupProperties;
 import at.lucny.p2pbackup.core.service.CryptoService;
+import at.lucny.p2pbackup.core.support.UserInputHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,10 +11,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import javax.sql.DataSource;
-import java.io.Console;
 import java.io.IOException;
 import java.util.HexFormat;
-import java.util.Scanner;
 
 @Configuration
 public class PersistenceConfig {
@@ -35,15 +34,7 @@ public class PersistenceConfig {
             String hexIv = HexFormat.of().formatHex(cryptoService.getSecretKeyGenerator().generate(SALT_KDF_DATABASE_IV, 128).getEncoded());
             dbUrl = databaseUrl + ";crypt_key=" + hexPassword + ";crypt_iv=" + hexIv + ";crypt_type=AES/CBC/PKCS5Padding";
         } else {
-            String yesNo = null;
-            Console console = System.console();
-            if (console != null) {
-                yesNo = console.readLine("The database will not be stored encrypted, this is a security risk. Continue (Y/N)?:");
-            } else {
-                System.out.println("The database will not be stored encrypted, this is a security risk. Continue (Y/N)?:");
-                Scanner scanner = new Scanner(System.in);
-                yesNo = scanner.nextLine();
-            }
+            String yesNo = new UserInputHelper().read("The database will not be stored encrypted, this is a security risk. Continue (Y/N)?:");
             if (!"Y".equalsIgnoreCase(yesNo)) {
                 throw new IllegalArgumentException("Abort startup because database would be unencrypted");
             }

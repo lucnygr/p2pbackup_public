@@ -2,10 +2,7 @@ package at.lucny.p2pbackup.core.service;
 
 import at.lucny.p2pbackup.application.config.P2PBackupProperties;
 import at.lucny.p2pbackup.core.dto.AuthenticationKeys;
-import at.lucny.p2pbackup.core.support.CertificateUtils;
-import at.lucny.p2pbackup.core.support.CryptoConstants;
-import at.lucny.p2pbackup.core.support.CryptoUtils;
-import at.lucny.p2pbackup.core.support.SecretKeyGenerator;
+import at.lucny.p2pbackup.core.support.*;
 import at.lucny.p2pbackup.user.domain.User;
 import at.lucny.p2pbackup.user.repository.UserRepository;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -20,7 +17,6 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManagerFactory;
-import java.io.Console;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.security.*;
@@ -30,7 +26,6 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
-import java.util.Scanner;
 
 @Service
 @Validated
@@ -110,14 +105,7 @@ public class CryptoServiceImpl implements CryptoService {
             LOGGER.warn("using provided password. this is a security risk and should not be used.");
             password = givenPassword.toCharArray();
         } else {
-            Console console = System.console();
-            if (console != null) {
-                password = console.readPassword("Please input the password for your private key %s:", path);
-            } else {
-                System.out.printf("Please input the password for your private key %s:", path);
-                Scanner scanner = new Scanner(System.in);
-                password = scanner.nextLine().toCharArray();
-            }
+            password = new UserInputHelper().read(String.format("Please input the password for your private key %s:", path)).toCharArray();
         }
         return password;
     }

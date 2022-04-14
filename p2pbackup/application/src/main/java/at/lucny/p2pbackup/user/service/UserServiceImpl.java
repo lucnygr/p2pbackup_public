@@ -1,6 +1,7 @@
 package at.lucny.p2pbackup.user.service;
 
 import at.lucny.p2pbackup.core.support.CertificateUtils;
+import at.lucny.p2pbackup.core.support.UserInputHelper;
 import at.lucny.p2pbackup.user.domain.NetworkAddress;
 import at.lucny.p2pbackup.user.domain.User;
 import at.lucny.p2pbackup.user.repository.UserRepository;
@@ -16,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
-import java.io.Console;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,7 +25,6 @@ import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.Scanner;
 
 @Service
 @Validated
@@ -119,15 +118,7 @@ public class UserServiceImpl implements UserService {
             String sha256Fingerprint = DigestUtils.sha256Hex(x509Certificate.getEncoded());
             String sha512Fingerprint = DigestUtils.sha3_512Hex(x509Certificate.getEncoded());
 
-            String yesNo = null;
-            Console console = System.console();
-            if (console != null) {
-                yesNo = console.readLine("Are the fingerprints\nSHA-256 fingerprint %s\nSHA3-512 fingerprint %s\n for the certificate of user %s correct? (Y/N):", sha256Fingerprint, sha512Fingerprint, userId);
-            } else {
-                System.out.println("Are the fingerprints\nSHA-256 fingerprint " + sha256Fingerprint + "\nSHA3-512 fingerprint " + sha512Fingerprint + "\n for the certificate of user " + userId + " correct? (Y/N):");
-                Scanner scanner = new Scanner(System.in);
-                yesNo = scanner.nextLine();
-            }
+            String yesNo = new UserInputHelper().read("Are the fingerprints\nSHA-256 fingerprint " + sha256Fingerprint + "\nSHA3-512 fingerprint " + sha512Fingerprint + "\n for the certificate of user " + userId + " correct? (Y/N):");
             if (!"Y".equalsIgnoreCase(yesNo)) {
                 LOGGER.info("Fingerprint not accepted, abort importing user {}", userId);
                 return Optional.empty();

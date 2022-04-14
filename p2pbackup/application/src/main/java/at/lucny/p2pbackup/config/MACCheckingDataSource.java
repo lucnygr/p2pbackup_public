@@ -3,13 +3,13 @@ package at.lucny.p2pbackup.config;
 import at.lucny.p2pbackup.application.config.P2PBackupProperties;
 import at.lucny.p2pbackup.core.service.CryptoService;
 import at.lucny.p2pbackup.core.support.HashUtils;
+import at.lucny.p2pbackup.core.support.UserInputHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.datasource.DelegatingDataSource;
 
 import javax.crypto.SecretKey;
 import java.io.Closeable;
-import java.io.Console;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -17,7 +17,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Base64;
 import java.util.List;
-import java.util.Scanner;
 import java.util.stream.StreamSupport;
 
 public class MACCheckingDataSource extends DelegatingDataSource implements Closeable {
@@ -47,15 +46,7 @@ public class MACCheckingDataSource extends DelegatingDataSource implements Close
             String expectedMacForDb = Files.readString(databaseMacPath);
 
             if (!expectedMacForDb.equals(actualMacForDb)) {
-                String yesNo = null;
-                Console console = System.console();
-                if (console != null) {
-                    yesNo = console.readLine("MAC of database is not correct. Continue anyway? (Y/N):");
-                } else {
-                    System.out.println("MAC of database is not correct. Continue anyway? (Y/N):");
-                    Scanner scanner = new Scanner(System.in);
-                    yesNo = scanner.nextLine();
-                }
+                String yesNo = new UserInputHelper().read("MAC of database is not correct. Continue anyway? (Y/N):");
                 if (!"Y".equalsIgnoreCase(yesNo)) {
                     throw new IllegalStateException("MAC of database is incorrect");
                 }

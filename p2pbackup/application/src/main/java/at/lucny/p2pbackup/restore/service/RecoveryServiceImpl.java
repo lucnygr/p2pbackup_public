@@ -10,6 +10,7 @@ import at.lucny.p2pbackup.core.domain.RootDirectory;
 import at.lucny.p2pbackup.core.repository.BlockMetaDataRepository;
 import at.lucny.p2pbackup.core.repository.RootDirectoryRepository;
 import at.lucny.p2pbackup.core.support.HashUtils;
+import at.lucny.p2pbackup.core.support.UserInputHelper;
 import at.lucny.p2pbackup.network.dto.ProtocolMessage;
 import at.lucny.p2pbackup.network.service.ClientService;
 import at.lucny.p2pbackup.network.service.NettyClient;
@@ -35,7 +36,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
-import java.io.Console;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,7 +43,10 @@ import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -168,19 +171,6 @@ public class RecoveryServiceImpl implements RecoveryService {
         return this.recoverBackupIndexRepository.findAll();
     }
 
-    private String readDestinationDirectoryForRootDirectory(String name) {
-        String directory = null;
-        Console console = System.console();
-        if (console != null) {
-            directory = console.readLine("Please input the destination-directory for the root-directory %s:", name);
-        } else {
-            System.out.println("Please input the destination-directory for the root-directory " + name + ":");
-            Scanner scanner = new Scanner(System.in);
-            directory = scanner.nextLine();
-        }
-        return directory;
-    }
-
     @Override
     @Transactional
     @SneakyThrows
@@ -197,7 +187,7 @@ public class RecoveryServiceImpl implements RecoveryService {
         LOGGER.info("start recovery for backup with id {} and date {}", idOfBackupIndex, index.getDate());
 
         for (RecoverRootDirectory recoverRootDirectory : index.getRootDirectories()) {
-            String destinationDirectory = this.readDestinationDirectoryForRootDirectory(recoverRootDirectory.getName());
+            String destinationDirectory = new UserInputHelper().read(String.format("Please input the destination-directory for the root-directory %s:", recoverRootDirectory.getName()));
             Path rootDirectoryRecoveryDir = Paths.get(destinationDirectory);
             if (!Files.isDirectory(rootDirectoryRecoveryDir)) {
                 LOGGER.info("recover-directory {} is not a directory", rootDirectoryRecoveryDir);

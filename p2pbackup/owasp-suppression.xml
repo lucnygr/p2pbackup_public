@@ -138,6 +138,138 @@
         <packageUrl regex="true">^pkg:maven/org\.springframework\.shell/spring\-shell\-core@.*$</packageUrl>
         <cve>CVE-2014-0054</cve>
     </suppress>
-
+    <suppress>
+        <notes><![CDATA[
+   file name: spring-shell-table-2.0.1.RELEASE.jar
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.shell/spring\-shell\-table@.*$</packageUrl>
+        <cve>CVE-2013-4152</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: spring-shell-table-2.0.1.RELEASE.jar
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.shell/spring\-shell\-table@.*$</packageUrl>
+        <cve>CVE-2013-7315</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: spring-shell-table-2.0.1.RELEASE.jar
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.shell/spring\-shell\-table@.*$</packageUrl>
+        <cve>CVE-2014-0054</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: spring-shell-starter-2.0.1.RELEASE.jar
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.shell/spring\-shell\-starter@.*$</packageUrl>
+        <cve>CVE-2013-4152</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: spring-shell-starter-2.0.1.RELEASE.jar
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.shell/spring\-shell\-starter@.*$</packageUrl>
+        <cve>CVE-2013-7315</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: spring-shell-starter-2.0.1.RELEASE.jar
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.shell/spring\-shell\-starter@.*$</packageUrl>
+        <cve>CVE-2014-0054</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: spring-shell-standard-2.0.1.RELEASE.jar
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.shell/spring\-shell\-standard@.*$</packageUrl>
+        <cve>CVE-2013-4152</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: spring-shell-standard-2.0.1.RELEASE.jar
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.shell/spring\-shell\-standard@.*$</packageUrl>
+        <cve>CVE-2013-7315</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: spring-shell-standard-2.0.1.RELEASE.jar
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.shell/spring\-shell\-standard@.*$</packageUrl>
+        <cve>CVE-2014-0054</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: spring-shell-shell1-adapter-2.0.1.RELEASE.jar
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.shell/spring\-shell\-shell1\-adapter@.*$</packageUrl>
+        <cve>CVE-2013-4152</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: spring-shell-shell1-adapter-2.0.1.RELEASE.jar
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.shell/spring\-shell\-shell1\-adapter@.*$</packageUrl>
+        <cve>CVE-2013-7315</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: spring-shell-shell1-adapter-2.0.1.RELEASE.jar
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.shell/spring\-shell\-shell1\-adapter@.*$</packageUrl>
+        <cve>CVE-2014-0054</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: spring-shell-standard-commands-2.0.1.RELEASE.jar
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.shell/spring\-shell\-standard\-commands@.*$</packageUrl>
+        <cpe>cpe:/a:vmware:spring_framework</cpe>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: spring-shell-standard-commands-2.0.1.RELEASE.jar
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.shell/spring\-shell\-standard\-commands@.*$</packageUrl>
+        <cve>CVE-2013-7315</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: spring-shell-standard-commands-2.0.1.RELEASE.jar
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.shell/spring\-shell\-standard\-commands@.*$</packageUrl>
+        <cve>CVE-2014-0054</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: spring-shell-jcommander-adapter-2.0.1.RELEASE.jar
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.shell/spring\-shell\-jcommander\-adapter@.*$</packageUrl>
+        <cve>CVE-2013-4152</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: spring-shell-jcommander-adapter-2.0.1.RELEASE.jar
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.shell/spring\-shell\-jcommander\-adapter@.*$</packageUrl>
+        <cve>CVE-2013-7315</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: spring-shell-jcommander-adapter-2.0.1.RELEASE.jar
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.shell/spring\-shell\-jcommander\-adapter@.*$</packageUrl>
+        <cve>CVE-2014-0054</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: spring-shell-standard-commands-2.0.1.RELEASE.jar
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.shell/spring\-shell\-standard\-commands@.*$</packageUrl>
+        <cve>CVE-2022-27772</cve>
+    </suppress>
 
 </suppressions>
