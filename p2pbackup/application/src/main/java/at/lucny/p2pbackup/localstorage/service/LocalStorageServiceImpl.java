@@ -265,6 +265,9 @@ public class LocalStorageServiceImpl implements LocalStorageService {
         LOGGER.trace("begin loadAllFromLocalStorage(userId={})", userId);
         List<Path> files = null;
         Path userDir = this.p2PBackupProperties.getStorageDir().resolve(userId);
+        if(!Files.isDirectory(userDir)) {
+            return new ArrayList<>();
+        }
         try (Stream<Path> allPaths = Files.list(userDir)) {
             files = this.applyFileFilter(allPaths).toList();
         } catch (IOException ioe) {
