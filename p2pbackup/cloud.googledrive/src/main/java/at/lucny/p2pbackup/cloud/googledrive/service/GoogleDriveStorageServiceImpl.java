@@ -236,4 +236,9 @@ public class GoogleDriveStorageServiceImpl implements CloudStorageService {
         }
         LOGGER.trace("end delete");
     }
+
+    @Override
+    public List<String> list() {
+        throw new UnsupportedOperationException();
+    }
 }

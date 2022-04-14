@@ -19,6 +19,8 @@ import javax.annotation.PreDestroy;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -147,6 +149,14 @@ public class NextcloudStorageServiceImpl implements CloudStorageService {
     }
 
     @Override
+    public List<String> list() {
+        this.checkInitialized();
+        List<String> files = new ArrayList<>(this.connector.listFolderContent(FOLDER_STORAGE));
+        files.remove(FOLDER_STORAGE);
+        return files;
+    }
+
+    @Override
     public String share(String filename) {
         LOGGER.trace("begin share(filename={})", filename);
         this.checkInitialized();
@@ -182,5 +192,10 @@ public class NextcloudStorageServiceImpl implements CloudStorageService {
             throw e;
         }
         LOGGER.trace("end delete(filename={})", filename);
+    }
+
+    @Override
+    public String toString() {
+        return NextcloudStorageServiceImpl.class + "-" + this.getId();
     }
 }
