@@ -3,10 +3,12 @@ package at.lucny.p2pbackup.cloud.nextcloud.service;
 import at.lucny.p2pbackup.application.support.StopApplicationEvent;
 import at.lucny.p2pbackup.cloud.CloudStorageService;
 import org.aarboard.nextcloud.api.NextcloudConnector;
+import org.aarboard.nextcloud.api.exception.NextcloudApiException;
 import org.aarboard.nextcloud.api.filesharing.Share;
 import org.aarboard.nextcloud.api.filesharing.SharePermissions;
 import org.aarboard.nextcloud.api.filesharing.ShareType;
 import org.apache.commons.configuration2.Configuration;
+import org.apache.http.client.HttpResponseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
@@ -17,6 +19,8 @@ import javax.annotation.PreDestroy;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -61,12 +65,12 @@ public class NextcloudStorageServiceImpl implements CloudStorageService {
 
     @PreDestroy
     public void stop() throws IOException {
-        LOGGER.trace("begin stop");
+        LOGGER.trace("begin stop()");
         if (this.connector != null) {
             LOGGER.info("shutting down nextcloud-connection");
             this.connector.shutdown();
         }
-        LOGGER.trace("end stop");
+        LOGGER.trace("end stop()");
     }
 
     @Override
@@ -141,7 +145,15 @@ public class NextcloudStorageServiceImpl implements CloudStorageService {
 
         String remoteFilename = this.getRemotePath(path.getFileName().toString());
         this.connector.uploadFile(path.toFile(), remoteFilename);
-        LOGGER.trace("end upload");
+        LOGGER.trace("end upload(path={})", path);
+    }
+
+    @Override
+    public List<String> list() {
+        this.checkInitialized();
+        List<String> files = new ArrayList<>(this.connector.listFolderContent(FOLDER_STORAGE));
+        files.remove(FOLDER_STORAGE);
+        return files;
     }
 
     @Override
@@ -149,12 +161,16 @@ public class NextcloudStorageServiceImpl implements CloudStorageService {
         LOGGER.trace("begin share(filename={})", filename);
         this.checkInitialized();
         String remoteFilename = this.getRemotePath(filename);
-        if (!this.connector.fileExists(remoteFilename)) {
-            throw new IllegalArgumentException("remote-path " + remoteFilename + " does not exist");
+        try {
+            String publicUrl = this.shareInternal(remoteFilename);
+            LOGGER.trace("end share(filename={}): return={}", filename, publicUrl);
+            return publicUrl;
+        } catch (NextcloudApiException e) {
+            if (e.getCause() instanceof HttpResponseException ex && ex.getStatusCode() == 404) {
+                throw new IllegalArgumentException("remote-path " + remoteFilename + " does not exist");
+            }
+            throw e;
         }
-        String publicUrl = this.shareInternal(remoteFilename);
-        LOGGER.trace("end share: return={}", publicUrl);
-        return publicUrl;
     }
 
     private String shareInternal(String remoteFilename) {
@@ -164,10 +180,22 @@ public class NextcloudStorageServiceImpl implements CloudStorageService {
     }
 
     public void delete(String filename) {
-        LOGGER.trace("begin share(filename={})", filename);
+        LOGGER.trace("begin delete(filename={})", filename);
         this.checkInitialized();
         String remoteFilename = this.getRemotePath(filename);
-        this.connector.removeFile(remoteFilename);
-        LOGGER.trace("end delete");
+        try {
+            this.connector.removeFile(remoteFilename);
+        } catch (NextcloudApiException e) {
+            if (e.getCause() instanceof HttpResponseException ex && ex.getStatusCode() == 404) {// ignore 404 because this means the file as already deleted
+                return;
+            }
+            throw e;
+        }
+        LOGGER.trace("end delete(filename={})", filename);
+    }
+
+    @Override
+    public String toString() {
+        return NextcloudStorageServiceImpl.class + "-" + this.getId();
     }
 }

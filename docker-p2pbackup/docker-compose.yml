@@ -2,7 +2,7 @@ version: "3"
 
 services:
   sonarqube:
-    image: sonarqube:9.2.1-community
+    image: sonarqube:9.4-community
     depends_on:
       - db
     environment:
@@ -23,15 +23,6 @@ services:
     volumes:
       - postgresql:/var/lib/postgresql
       - postgresql_data:/var/lib/postgresql/data
-#  jenkins:
-#    image: jenkins/jenkins:lts-jdk11
-#    depends_on:
-#      - sonarqube
-#    volumes:
-#      - jenkins_home:/var/jenkins_home
-#    ports:
-#      - "8080:8080"
-#      - "50000:50000"
 
 volumes:
   sonarqube_data:

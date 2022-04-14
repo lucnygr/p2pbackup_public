@@ -1,6 +1,7 @@
 package at.lucny.p2pbackup.restore.domain;
 
-import at.lucny.p2pbackup.core.domain.BlockMetaDataId;
+import at.lucny.p2pbackup.core.domain.AbstractEntity;
+import at.lucny.p2pbackup.core.domain.BlockMetaData;
 import lombok.*;
 
 import javax.persistence.*;
@@ -12,10 +13,12 @@ import javax.persistence.*;
 @ToString(callSuper = true)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-public class RestoreBlockData {
+public class RestoreBlockData extends AbstractEntity {
 
-    @EmbeddedId
-    private BlockMetaDataId blockMetaDataId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "BLOCK_META_DATA_ID", nullable = false)
+    @ToString.Exclude
+    private BlockMetaData blockMetaData;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "TYPE", nullable = false)

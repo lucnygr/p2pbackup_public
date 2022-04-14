@@ -65,7 +65,7 @@ public class ClientServiceNetty extends AbstractNettyService implements ClientSe
     @TransactionalEventListener
     public synchronized void afterUserAdded(UserAddedEvent event) {
         LOGGER.info("adding client for user {}", event.getUserId());
-        User user = this.userRepository.findById(event.getUserId()).orElseThrow(() -> new IllegalArgumentException("Unknown user " + event.getUserId()));
+        User user = this.userRepository.findByIdFetchAdresses(event.getUserId()).orElseThrow(() -> new IllegalArgumentException("Unknown user " + event.getUserId()));
         var client = new NettyClient(this.clientBootstrap, user, this.p2PBackupProperties.getNetwork().getDurationBetweenConnectionAttempts());
         this.usedClients.put(event.getUserId(), client);
     }
@@ -84,7 +84,7 @@ public class ClientServiceNetty extends AbstractNettyService implements ClientSe
         NettyClient client = this.getClient(event.getUserId());
         this.usedClients.remove(event.getUserId());
         client.disconnect();
-        User user = this.userRepository.findById(event.getUserId()).orElseThrow(() -> new IllegalArgumentException("Unknown user " + event.getUserId()));
+        User user = this.userRepository.findByIdFetchAdresses(event.getUserId()).orElseThrow(() -> new IllegalArgumentException("Unknown user " + event.getUserId()));
         client = new NettyClient(this.clientBootstrap, user, this.p2PBackupProperties.getNetwork().getDurationBetweenConnectionAttempts());
         this.usedClients.put(event.getUserId(), client);
     }
@@ -130,7 +130,8 @@ public class ClientServiceNetty extends AbstractNettyService implements ClientSe
         return userIds.stream().map(this::getClient).filter(this::isOnline).toList();
     }
 
-    private boolean isOnline(NettyClient client) {
+    @Override
+    public boolean isOnline(NettyClient client) {
         if (client.isDisconnected()) {
             if (client.connect()) {
                 LOGGER.trace("connected to {}", client.getUser().getId());

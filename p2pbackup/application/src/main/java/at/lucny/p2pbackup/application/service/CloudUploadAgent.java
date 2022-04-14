@@ -1,11 +1,13 @@
 package at.lucny.p2pbackup.application.service;
 
+import at.lucny.p2pbackup.backup.support.BackupFileEvent;
 import at.lucny.p2pbackup.configuration.support.ConfigurationConstants;
 import at.lucny.p2pbackup.upload.service.CloudUploadService;
 import org.apache.commons.configuration2.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.DependsOn;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
@@ -33,15 +35,20 @@ public class CloudUploadAgent {
         }
     }
 
+    @EventListener
+    public void onBackupFileEvent(BackupFileEvent event) {
+        this.upload();
+    }
+
     public synchronized Future<Void> upload() {
         if (this.runningTask == null) {
             this.runningTask = this.taskExecutor.submit(() -> {
                 try {
-                    LOGGER.info("upload all local blocks");
+                    LOGGER.debug("upload all local blocks");
                     this.cloudUploadService.uploadLocalBackupBlocks();
-                    LOGGER.info("finished uploading all local blocks");
+                    LOGGER.debug("finished uploading all local blocks");
                 } catch (Exception e) {
-                    LOGGER.warn("unable to restore blocks", e);
+                    LOGGER.warn("unable to upload blocks", e);
                 } finally {
                     this.runningTask = null;
                 }

@@ -1,4 +1,4 @@
-package at.lucny.p2pbackup.backup.service;
+package at.lucny.p2pbackup.backup.service.worker;
 
 import at.lucny.p2pbackup.backup.dto.BackupIndex;
 import at.lucny.p2pbackup.backup.dto.BackupRootDirectory;
@@ -12,7 +12,6 @@ import at.lucny.p2pbackup.core.domain.RootDirectory;
 import at.lucny.p2pbackup.core.repository.BlockMetaDataRepository;
 import at.lucny.p2pbackup.core.repository.PathDataRepository;
 import at.lucny.p2pbackup.core.service.BlockEncryptionService;
-import at.lucny.p2pbackup.core.service.ByteBufferPoolService;
 import at.lucny.p2pbackup.localstorage.dto.LocalStorageEntry;
 import at.lucny.p2pbackup.localstorage.service.LocalStorageService;
 import at.lucny.p2pbackup.upload.service.CloudUploadService;
@@ -36,7 +35,7 @@ import java.util.Set;
 
 @Service
 @Validated
-class BackupServiceWorker {
+public class BackupServiceWorker {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BackupServiceWorker.class);
 
@@ -46,8 +45,6 @@ class BackupServiceWorker {
 
     private final LocalStorageService localStorageService;
 
-    private final ByteBufferPoolService byteBufferPoolService;
-
     private final BlockEncryptionService blockEncryptionService;
 
     private final VerificationValueService verificationValueService;
@@ -56,11 +53,10 @@ class BackupServiceWorker {
 
     private final CloudUploadService cloudUploadService;
 
-    public BackupServiceWorker(PathDataRepository pathDataRepository, BlockMetaDataRepository blockMetaDataRepository, LocalStorageService localStorageService, ByteBufferPoolService byteBufferPoolService, BlockEncryptionService blockEncryptionService, VerificationValueService verificationValueService, DistributionService distributionService, CloudUploadService cloudUploadService) {
+    public BackupServiceWorker(PathDataRepository pathDataRepository, BlockMetaDataRepository blockMetaDataRepository, LocalStorageService localStorageService, BlockEncryptionService blockEncryptionService, VerificationValueService verificationValueService, DistributionService distributionService, CloudUploadService cloudUploadService) {
         this.pathDataRepository = pathDataRepository;
         this.blockMetaDataRepository = blockMetaDataRepository;
         this.localStorageService = localStorageService;
-        this.byteBufferPoolService = byteBufferPoolService;
         this.blockEncryptionService = blockEncryptionService;
         this.verificationValueService = verificationValueService;
         this.distributionService = distributionService;
@@ -127,7 +123,7 @@ class BackupServiceWorker {
         // if the block doesn't exist in the db generate a new BlockMetaData
         BlockMetaData bmd = optionalBlockMetaData.orElseGet(() -> this.blockMetaDataRepository.save(new BlockMetaData(block.hash())));
 
-        boolean saveInLocalBackup = optionalBlockMetaData.map(b -> this.blockMetaDataRepository.hasNotEnoughVerifiedReplicas(b.getId(), BackupConstants.NR_OF_REPLICAS, this.distributionService.calulateVerificationInvalidDateTime())).orElse(true);
+        boolean saveInLocalBackup = optionalBlockMetaData.map(b -> this.distributionService.hasNotEnoughVerifiedReplicas(b.getId())).orElse(true);
         boolean needsMoreVerificationValues = this.verificationValueService.needsGenerationOfVerificationValues(bmd.getId());
 
         if (saveInLocalBackup || needsMoreVerificationValues) {
@@ -158,22 +154,15 @@ class BackupServiceWorker {
 
     private void encryptAndProcess(BlockMetaData bmd, ByteBuffer block, boolean saveInLocalBackup, boolean generateVerificationValues) {
         LOGGER.debug("persisting local-backup-block for {}", bmd.getId());
-        Integer key = this.byteBufferPoolService.calculateBufferSize(block.remaining());
-        ByteBuffer encryptedDataBuffer = this.byteBufferPoolService.borrowObject(key);
 
-        try {
-            // encrypt the block-content and write it into the encryptedDataBuffer
-            this.blockEncryptionService.encrypt(block.duplicate(), bmd.getId().getBytes(StandardCharsets.UTF_8), encryptedDataBuffer);
-
+        this.blockEncryptionService.encrypt(block.duplicate(), bmd.getId().getBytes(StandardCharsets.UTF_8), encryptedDataBuffer -> {
             if (saveInLocalBackup) {
-                LocalStorageEntry localStorageEntry = this.localStorageService.saveInLocalStorage(bmd.getId(), encryptedDataBuffer.rewind());
+                LocalStorageEntry localStorageEntry = this.localStorageService.saveInLocalStorage(bmd.getId(), encryptedDataBuffer.duplicate());
                 this.cloudUploadService.saveCloudUpload(bmd, localStorageEntry.macSecret(), localStorageEntry.mac());
             }
             if (generateVerificationValues) {
-                this.verificationValueService.ensureVerificationValues(bmd.getId(), encryptedDataBuffer.rewind());
+                this.verificationValueService.ensureVerificationValues(bmd.getId(), encryptedDataBuffer.duplicate());
             }
-        } finally {
-            this.byteBufferPoolService.returnObject(key, encryptedDataBuffer);
-        }
+        });
     }
 }

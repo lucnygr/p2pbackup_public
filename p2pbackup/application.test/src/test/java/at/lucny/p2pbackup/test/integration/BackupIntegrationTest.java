@@ -3,6 +3,7 @@ package at.lucny.p2pbackup.test.integration;
 import at.lucny.p2pbackup.backup.dto.BackupIndex;
 import at.lucny.p2pbackup.backup.dto.PathDataVersion;
 import at.lucny.p2pbackup.backup.service.BackupService;
+import at.lucny.p2pbackup.backup.service.FixedSizeChunkerServiceImpl;
 import at.lucny.p2pbackup.backup.support.BackupConstants;
 import at.lucny.p2pbackup.backup.support.BackupUtils;
 import at.lucny.p2pbackup.core.domain.*;
@@ -193,7 +194,7 @@ class BackupIntegrationTest extends BaseSingleApplicationIntegrationTest {
     @SneakyThrows
     private byte[] decryptBlock(Path pathToBlock, String bmdId) {
         byte[] encryptedData = Files.readAllBytes(pathToBlock);
-        ByteBuffer plainDataBuffer = ByteBuffer.allocate(1024 * 1024);
+        ByteBuffer plainDataBuffer = ByteBuffer.allocate(FixedSizeChunkerServiceImpl.BLOCK_SIZE * 10);
         this.blockEncryptionService.decrypt(ByteBuffer.wrap(encryptedData), bmdId.getBytes(StandardCharsets.UTF_8), plainDataBuffer);
         byte[] plainData = new byte[plainDataBuffer.remaining()];
         plainDataBuffer.get(plainData);
@@ -362,7 +363,7 @@ class BackupIntegrationTest extends BaseSingleApplicationIntegrationTest {
         Path file1Path = getDataDir().resolve("testfile_big.txt");
         List<byte[]> content = new ArrayList<>();
         for (int i = 0; i < 15; i++) {
-            byte[] bytes = new byte[100 * 1024];
+            byte[] bytes = new byte[FixedSizeChunkerServiceImpl.BLOCK_SIZE];
             BackupUtils.RANDOM.nextBytes(bytes);
             Files.write(file1Path, bytes, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
             content.add(bytes);

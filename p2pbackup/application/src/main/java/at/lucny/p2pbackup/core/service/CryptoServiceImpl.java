@@ -2,10 +2,7 @@ package at.lucny.p2pbackup.core.service;
 
 import at.lucny.p2pbackup.application.config.P2PBackupProperties;
 import at.lucny.p2pbackup.core.dto.AuthenticationKeys;
-import at.lucny.p2pbackup.core.support.CertificateUtils;
-import at.lucny.p2pbackup.core.support.CryptoConstants;
-import at.lucny.p2pbackup.core.support.CryptoUtils;
-import at.lucny.p2pbackup.core.support.SecretKeyGenerator;
+import at.lucny.p2pbackup.core.support.*;
 import at.lucny.p2pbackup.user.domain.User;
 import at.lucny.p2pbackup.user.repository.UserRepository;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -20,8 +17,6 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManagerFactory;
-import javax.security.auth.DestroyFailedException;
-import java.io.Console;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.security.*;
@@ -31,7 +26,6 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
-import java.util.Scanner;
 
 @Service
 @Validated
@@ -51,7 +45,7 @@ public class CryptoServiceImpl implements CryptoService {
 
     private final KeyManagerFactory tlsKeyManagerFactory;
 
-    public CryptoServiceImpl(P2PBackupProperties p2PBackupProperties, CryptoUtils cryptoUtils, @Lazy UserRepository userRepository, @Value("${at.lucny.p2p-backup.password:}") String givenPassword) throws IOException, KeyStoreException, CertificateEncodingException, DestroyFailedException {
+    public CryptoServiceImpl(P2PBackupProperties p2PBackupProperties, CryptoUtils cryptoUtils, @Lazy UserRepository userRepository, @Value("${at.lucny.p2p-backup.password:}") String givenPassword) throws IOException, KeyStoreException, CertificateEncodingException {
         LOGGER.info("creating crypto-service");
         this.p2PBackupProperties = p2PBackupProperties;
         this.userRepository = userRepository;
@@ -111,14 +105,7 @@ public class CryptoServiceImpl implements CryptoService {
             LOGGER.warn("using provided password. this is a security risk and should not be used.");
             password = givenPassword.toCharArray();
         } else {
-            Console console = System.console();
-            if (console != null) {
-                password = console.readPassword("Please input the password for your private key %s:", path);
-            } else {
-                System.out.printf("Please input the password for your private key %s:", path);
-                Scanner scanner = new Scanner(System.in);
-                password = scanner.nextLine().toCharArray();
-            }
+            password = new UserInputHelper().read(String.format("Please input the password for your private key %s:", path)).toCharArray();
         }
         return password;
     }
@@ -188,19 +175,23 @@ public class CryptoServiceImpl implements CryptoService {
             engine.setNeedClientAuth(true);
 
             String[] enProtocols = engine.getEnabledProtocols();
-            LOGGER.trace("Enabled protocols are: {}", Arrays.toString(enProtocols));
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("Enabled protocols are: {}", Arrays.toString(enProtocols));
+            }
             if (!Arrays.asList(enProtocols).contains(CryptoConstants.TLS_VERSION)) {
                 throw new IllegalStateException("protocol version " + CryptoConstants.TLS_VERSION + " not supported");
             }
             engine.setEnabledProtocols(new String[]{CryptoConstants.TLS_VERSION});
 
             String[] enCiphersuite = engine.getEnabledCipherSuites();
-            LOGGER.trace("Enabled ciphersuites are: {}", Arrays.toString(enCiphersuite));
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace("Enabled ciphersuites are: {}", Arrays.toString(enCiphersuite));
+            }
             engine.setEnabledCipherSuites(CryptoConstants.TLS_CIPHERS);
 
             return engine;
         } catch (KeyStoreException | CertificateException | NoSuchAlgorithmException | KeyManagementException | IOException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException("unable to create ssl-engine", e);
         } finally {
             LOGGER.trace("end createSslEngine");
         }

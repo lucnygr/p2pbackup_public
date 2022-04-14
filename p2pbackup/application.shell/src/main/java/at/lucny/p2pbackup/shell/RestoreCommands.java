@@ -5,7 +5,8 @@ import at.lucny.p2pbackup.backup.service.BackupService;
 import at.lucny.p2pbackup.core.domain.RootDirectory;
 import at.lucny.p2pbackup.restore.domain.RecoverBackupIndex;
 import at.lucny.p2pbackup.restore.service.RecoveryService;
-import at.lucny.p2pbackup.restore.service.RestorationService;
+import at.lucny.p2pbackup.restore.service.RestoreCloudUploadService;
+import at.lucny.p2pbackup.restore.service.RestoreManagementService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.shell.standard.ShellComponent;
@@ -27,17 +28,20 @@ public class RestoreCommands {
 
     private final BackupService backupService;
 
-    private final RestorationService restorationService;
+    private final RestoreManagementService restoreManagementService;
 
     private final RecoveryService recoveryService;
 
     private final RestoreAgent restoreAgent;
 
-    public RestoreCommands(BackupService backupService, RestorationService restorationService, RecoveryService recoveryService, RestoreAgent restoreAgent) {
+    private final RestoreCloudUploadService restoreCloudUploadService;
+
+    public RestoreCommands(BackupService backupService, RestoreManagementService restoreManagementService, RecoveryService recoveryService, RestoreAgent restoreAgent, RestoreCloudUploadService restoreCloudUploadService) {
         this.backupService = backupService;
-        this.restorationService = restorationService;
+        this.restoreManagementService = restoreManagementService;
         this.recoveryService = recoveryService;
         this.restoreAgent = restoreAgent;
+        this.restoreCloudUploadService = restoreCloudUploadService;
     }
 
     @ShellMethod("Restores the given directory to a specific directory for the current date")
@@ -51,16 +55,17 @@ public class RestoreCommands {
         Optional<RootDirectory> optionalRootDirectory = this.backupService.getRootDirectory(name);
         if (optionalRootDirectory.isEmpty()) {
             LOGGER.info("backup-directory {} is not configured", name);
-        } else {
-            RootDirectory rootDirectory = optionalRootDirectory.get();
-            this.restorationService.beginRestore(rootDirectory, LocalDateTime.now(ZoneOffset.UTC), directory);
-            this.restoreAgent.restore();
-            LOGGER.info("started restore for directory {}", targetDirectory);
+            return;
         }
+
+        RootDirectory rootDirectory = optionalRootDirectory.get();
+        this.restoreManagementService.beginRestore(rootDirectory, LocalDateTime.now(ZoneOffset.UTC), directory);
+        this.restoreAgent.restore();
+        LOGGER.info("started restore for directory {}", targetDirectory);
     }
 
     @ShellMethod("Restores the given directory to a specific directory for the given date")
-    public void restoreDirectoryAt(@NotNull String name, @NotNull String targetDirectory, @NotNull String date) {
+    public void restoreDirectoryAtDate(@NotNull String name, @NotNull String targetDirectory, @NotNull String date) {
         Optional<RootDirectory> optionalRootDirectory = this.backupService.getRootDirectory(name);
 
         Path directory = Paths.get(targetDirectory);
@@ -76,14 +81,19 @@ public class RestoreCommands {
 
         LocalDateTime dateTime = LocalDateTime.parse(date);
 
-        this.restorationService.beginRestore(optionalRootDirectory.get(), dateTime, directory);
+        this.restoreManagementService.beginRestore(optionalRootDirectory.get(), dateTime, directory);
         this.restoreAgent.restore();
         LOGGER.info("started restore for directory {}", targetDirectory);
     }
 
-    @ShellMethod("Starts the recovery of the backup-index")
-    public void recoverIndex() {
-        this.recoveryService.recoverBackupIndex();
+    @ShellMethod("Starts the recovery of the backup-index and metadata of other users")
+    public void recoverFromOtherUsers() {
+        this.recoveryService.requestBackupIndex();
+    }
+
+    @ShellMethod("Starts the recovery from the cloud-storage")
+    public void recoverFromCloudStorage() {
+        this.restoreCloudUploadService.recoverFromCloudStorages();
     }
 
     @ShellMethod("Shows all recovered backup indizes")
@@ -97,6 +107,12 @@ public class RestoreCommands {
     @ShellMethod("Starts the recovery of the backup-index with the given id")
     public void startRecovery(@NotNull String backupIndexId) {
         this.recoveryService.startRecovery(backupIndexId);
+        this.restoreAgent.restore();
+    }
+
+
+    @ShellMethod("restores blocks from other users")
+    public void restoreBlocks() {
         this.restoreAgent.restore();
     }
 

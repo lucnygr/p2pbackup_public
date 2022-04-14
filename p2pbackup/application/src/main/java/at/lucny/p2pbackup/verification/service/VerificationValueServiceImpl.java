@@ -130,6 +130,7 @@ public class VerificationValueServiceImpl implements VerificationValueService {
             }
             // if the verification value is no longer valid delete it
             LOGGER.debug("active-verification-value {} for block {} is timed out", optionalVerificationValue.get().getId(), blockMetaDataId);
+            this.activeVerificationValueRepository.flush();
             this.activeVerificationValueRepository.deleteAllInBatch(List.of(optionalVerificationValue.get()));
         }
 

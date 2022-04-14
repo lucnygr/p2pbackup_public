@@ -19,6 +19,7 @@ public abstract class AbstractNettyService {
                 LOGGER.debug("event-loop-group terminated");
             } catch (InterruptedException e) {
                 LOGGER.error("Shutdown of event-loop-group.", e);
+                Thread.currentThread().interrupt();
             }
         } else {
             LOGGER.debug("event-loop-group already stopped");

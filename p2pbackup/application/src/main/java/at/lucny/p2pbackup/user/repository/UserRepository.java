@@ -6,11 +6,15 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, String> {
 
     @Query("select DISTINCT u from User u left join fetch u.addresses where u.id in (:ids) order by u.id")
     List<User> fetchAddresses(List<String> ids);
+
+    @Query("select u from User u left join fetch u.addresses where u.id = :id")
+    Optional<User> findByIdFetchAdresses(String id);
 
 }

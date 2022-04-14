@@ -52,6 +52,7 @@ message BackupBlockFailure {
     WRONG_MAC = 1;
     USER_NOT_ALLOWED = 2;
     BLOCK_ALREADY_SAVED_WITH_OTHER_MAC = 3;
+    BLOCK_NOT_FOUND = 4;
   }
 }
 

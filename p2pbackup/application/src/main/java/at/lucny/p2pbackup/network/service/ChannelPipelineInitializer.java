@@ -1,6 +1,7 @@
 package at.lucny.p2pbackup.network.service;
 
 import at.lucny.p2pbackup.network.dto.ProtocolMessage;
+import at.lucny.p2pbackup.network.service.handler.ExceptionLoggingHandler;
 import at.lucny.p2pbackup.network.service.handler.MessageWrapperHandler;
 import at.lucny.p2pbackup.network.service.handler.UserExtractingHandler;
 import io.netty.channel.Channel;
@@ -11,7 +12,6 @@ import io.netty.handler.codec.protobuf.ProtobufDecoder;
 import io.netty.handler.codec.protobuf.ProtobufEncoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32FrameDecoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
-import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +27,7 @@ public class ChannelPipelineInitializer extends ChannelInitializer<Channel> {
 
     private static final ProtobufVarint32LengthFieldPrepender FRAMER_DOWNSTREAM = new ProtobufVarint32LengthFieldPrepender();
 
-    private static final LoggingHandler LOGGING_HANDLER = new LoggingHandler();
+    private static final ExceptionLoggingHandler LOGGING_HANDLER = new ExceptionLoggingHandler();
 
     private static final ProtobufEncoder PROTOBUF_ENCODER = new ProtobufEncoder();
 
@@ -60,9 +60,6 @@ public class ChannelPipelineInitializer extends ChannelInitializer<Channel> {
         SslHandler sslHandler = new SslHandler(this.sslEngineSupplier.get());
         pipeline.addLast("ssl", sslHandler);
 
-        // pipeline.addLast("traffic", new GlobalTrafficShapingHandler(timer,
-        // writeLimit, readLimit, interval));
-
         pipeline.addLast("framerDownstream", FRAMER_DOWNSTREAM);
         pipeline.addLast("framerUpstream", new ProtobufVarint32FrameDecoder());
 
@@ -72,8 +69,6 @@ public class ChannelPipelineInitializer extends ChannelInitializer<Channel> {
         pipeline.addLast(LOGGING_HANDLER);
         pipeline.addLast(USER_EXTRACTING_HANDLER);
         pipeline.addLast(MESSAGE_WRAPPER_HANDLER);
-
-        //pipeline.addLast("idleStateHandler", new IdleStateHandler());
 
         for (Entry<String, ChannelHandler> entry : this.handlerMap.entrySet()) {
             pipeline.addLast(entry.getKey(), entry.getValue());

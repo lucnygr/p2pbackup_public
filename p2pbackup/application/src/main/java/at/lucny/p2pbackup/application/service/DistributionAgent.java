@@ -40,10 +40,13 @@ public class DistributionAgent {
         if (this.runningTask == null && !this.configuration.containsKey(ConfigurationConstants.PROPERTY_RECOVERY_STATE)) {
             this.runningTask = this.taskExecutor.submit(() -> {
                 try {
+                    LOGGER.debug("distributing blocks");
                     this.distributionService.distributeBlocks();
+                    LOGGER.debug("verify replica amount");
                     this.distributionService.verifyEnoughReplicas();
+                    LOGGER.debug("finished distributing blocks");
                 } catch (Exception e) {
-                    LOGGER.warn("unable to restore blocks", e);
+                    LOGGER.warn("unable to distribute blocks", e);
                 } finally {
                     this.runningTask = null;
                 }

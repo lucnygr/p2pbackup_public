@@ -1,5 +1,6 @@
 package at.lucny.p2pbackup.core.service;
 
+import at.lucny.p2pbackup.backup.support.BackupConstants;
 import org.apache.commons.pool2.BaseKeyedPooledObjectFactory;
 import org.apache.commons.pool2.KeyedObjectPool;
 import org.apache.commons.pool2.PooledObject;
@@ -20,7 +21,7 @@ public class ByteBufferPoolServiceImpl implements ByteBufferPoolService {
         this.pool = new GenericKeyedObjectPool<>(new BaseKeyedPooledObjectFactory<>() {
             @Override
             public ByteBuffer create(Integer key) throws Exception {
-                return ByteBuffer.allocateDirect(key * 1024);
+                return ByteBuffer.allocateDirect(key * BackupConstants.ONE_KILOBYTE);
             }
 
             @Override

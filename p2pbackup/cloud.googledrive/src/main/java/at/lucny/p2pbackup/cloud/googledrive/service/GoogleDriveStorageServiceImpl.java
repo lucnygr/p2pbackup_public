@@ -97,17 +97,15 @@ public class GoogleDriveStorageServiceImpl implements CloudStorageService {
     /**
      * Creates an authorized Credential object.
      *
-     * @param HTTP_TRANSPORT The network HTTP Transport.
+     * @param httpTransport The network HTTP Transport.
      * @return An authorized Credential object.
      * @throws IOException If the credentials.json file cannot be found.
      */
-    private Credential getCredentials(final NetHttpTransport HTTP_TRANSPORT) throws IOException {
+    private Credential getCredentials(final NetHttpTransport httpTransport) throws IOException {
         if (credentials == null) {
             throw new IllegalStateException("google drive not configured");
         }
         GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(GsonFactory.getDefaultInstance(), new InputStreamReader(this.credentials.getInputStream()));
-
-        //MemoryDataStoreFactory dataStore = MemoryDataStoreFactory.getDefaultInstance();
 
         Path credentialStore = this.p2PBackupProperties.getConfigDir().resolve("GoogleDriveCredentials");
         Files.createDirectories(credentialStore);
@@ -115,12 +113,10 @@ public class GoogleDriveStorageServiceImpl implements CloudStorageService {
 
         // Build flow and trigger user authorization request.
         GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
-                HTTP_TRANSPORT, GsonFactory.getDefaultInstance(), clientSecrets, SCOPES)
+                httpTransport, GsonFactory.getDefaultInstance(), clientSecrets, SCOPES)
                 .setDataStoreFactory(fileDataStoreFactory)
                 .setAccessType("offline")
-                //.setCredentialDataStore(fileDataStoreFactory.getDataStore("1"))
                 .build();
-        //LocalServerReceiver receiver = new LocalServerReceiver.Builder().setPort(8888).build();
         return new AuthorizationCodeInstalledApp(flow, new LocalServerReceiver()).authorize(this.p2PBackupProperties.getUser());
     }
 
@@ -239,5 +235,10 @@ public class GoogleDriveStorageServiceImpl implements CloudStorageService {
             this.driveService.files().delete(fileOptional.get().getId()).execute();
         }
         LOGGER.trace("end delete");
+    }
+
+    @Override
+    public List<String> list() {
+        throw new UnsupportedOperationException();
     }
 }

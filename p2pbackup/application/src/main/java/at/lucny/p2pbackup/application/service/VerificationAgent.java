@@ -32,7 +32,7 @@ public class VerificationAgent {
         this.taskExecutor = taskExecutor;
 
         if (!this.configuration.containsKey(ConfigurationConstants.PROPERTY_DISABLE_VERIFICATION_AGENT) || !this.configuration.getBoolean(ConfigurationConstants.PROPERTY_DISABLE_VERIFICATION_AGENT)) {
-            taskScheduler.scheduleWithFixedDelay(this::verify, 1000L * 60 * 5);
+            taskScheduler.scheduleWithFixedDelay(this::verify, 1000L * 60 * 30);
         }
     }
 
@@ -42,7 +42,7 @@ public class VerificationAgent {
                 try {
                     this.verificationService.verifyBlocks();
                 } catch (Exception e) {
-                    LOGGER.warn("unable to restore blocks", e);
+                    LOGGER.warn("unable to verify blocks", e);
                 } finally {
                     this.runningTask = null;
                 }

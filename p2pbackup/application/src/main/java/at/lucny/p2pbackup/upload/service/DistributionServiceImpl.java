@@ -1,7 +1,6 @@
 package at.lucny.p2pbackup.upload.service;
 
 import at.lucny.p2pbackup.application.config.P2PBackupProperties;
-import at.lucny.p2pbackup.backup.support.BackupConstants;
 import at.lucny.p2pbackup.core.domain.BlockMetaData;
 import at.lucny.p2pbackup.core.domain.CloudUpload;
 import at.lucny.p2pbackup.core.domain.DataLocation;
@@ -14,9 +13,10 @@ import at.lucny.p2pbackup.network.dto.RestoreBlock;
 import at.lucny.p2pbackup.network.dto.RestoreBlockFor;
 import at.lucny.p2pbackup.network.service.ClientService;
 import at.lucny.p2pbackup.network.service.NettyClient;
+import at.lucny.p2pbackup.network.service.listener.SuccessListener;
+import at.lucny.p2pbackup.user.domain.User;
 import com.google.common.collect.Lists;
 import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
@@ -61,7 +61,9 @@ public class DistributionServiceImpl implements DistributionService {
     @Override
     public int getNumberOfVerifiedReplicas(BlockMetaData bmd) {
         LocalDateTime verificationIsInvalidDateTime = this.calulateVerificationInvalidDateTime();
-        return (int) bmd.getLocations().stream().filter(location -> location.getVerified().isAfter(verificationIsInvalidDateTime)).count();
+        int nrOfVerifiedLocations = (int) bmd.getLocations().stream().filter(location -> location.getVerified().isAfter(verificationIsInvalidDateTime)).count();
+        LOGGER.trace("block {} has {} verified locations with verification-dates > {}", bmd.getId(), nrOfVerifiedLocations, verificationIsInvalidDateTime);
+        return nrOfVerifiedLocations;
     }
 
     @Override
@@ -83,17 +85,31 @@ public class DistributionServiceImpl implements DistributionService {
 
     @Override
     public boolean hasEnoughVerifiedReplicas(BlockMetaData bmd) {
-        return this.getNumberOfVerifiedReplicas(bmd) >= BackupConstants.NR_OF_REPLICAS;
+        return this.getNumberOfVerifiedReplicas(bmd) >= this.p2PBackupProperties.getMinimalReplicas();
     }
 
     @Override
     public void distributeBlocks() {
-        LOGGER.info("start to distribute blocks to other users");
+        LOGGER.trace("begin distributeBlocks()");
 
-        Set<CloudUpload> cloudUploadsToDelete = new HashSet<>();
-        // try to distribute at maximum 10000 blocks for this iteration
-        List<String> cloudUploadIds = this.cloudUploadRepository.findIdByShareUrlIsNotNull(PageRequest.of(0, 10000)).getContent();
+        long totalNrOfDistributableBlocks = this.cloudUploadRepository.countByShareUrlIsNotNull();
+        if (totalNrOfDistributableBlocks == 0) {
+            return;
+        }
+        LOGGER.info("prepare to distribute up to {} blocks", totalNrOfDistributableBlocks);
+
+        List<String> onlineUsers = this.clientService.getOnlineClients().stream().map(NettyClient::getUser).filter(User::isAllowBackupDataToUser).map(User::getId).toList();
+        if (CollectionUtils.isEmpty(onlineUsers)) {
+            LOGGER.info("no other users that are a valid backup-target are online");
+            return;
+        }
+
+        // try to distribute at maximum 1000 blocks for this iteration
+        List<String> cloudUploadIds = this.cloudUploadRepository.findIdByShareUrlIsNotNull(onlineUsers, onlineUsers.size(), PageRequest.of(0, 1000)).getContent();
         List<List<String>> partitionedCloudUploadIds = Lists.partition(cloudUploadIds, 100);
+        long nrOfProcessedUploads = 0;
+        long nrOfSuccessfullDistributions = 0;
+        long nrOfDeletedCloudUploads = 0;
 
         for (List<String> nextCloudUploadIds : partitionedCloudUploadIds) {
             List<CloudUpload> cloudUploads = this.cloudUploadRepository.findAllById(nextCloudUploadIds);
@@ -103,48 +119,68 @@ public class DistributionServiceImpl implements DistributionService {
 
                 boolean enoughVerifiedReplicas = this.hasEnoughVerifiedReplicas(bmd);
                 if (enoughVerifiedReplicas) {
-                    cloudUploadsToDelete.add(cloudUpload);
                     LOGGER.debug("backup-block {} already has enough replicas", cloudUpload.getBlockMetaData().getId());
-                    continue;
+                    this.cloudUploadService.removeCloudUpload(cloudUpload);
+                    nrOfDeletedCloudUploads++;
                 }
 
-                List<NettyClient> usersForReplication = this.getUsersForReplication(bmd);
-                if (CollectionUtils.isEmpty(usersForReplication)) {
-                    LOGGER.debug("for backup-block {} are no other users online to backup to", cloudUpload.getBlockMetaData().getId());
-                    continue;
+                if (this.distributeBlock(cloudUpload, bmd)) {
+                    nrOfSuccessfullDistributions++;
                 }
 
-                var backupBlockBuilder = BackupBlock.newBuilder().setId(bmd.getId()).setDownloadURL(cloudUpload.getShareUrl())
-                        .setMacOfBlock(cloudUpload.getEncryptedBlockMac()).setMacSecret(cloudUpload.getMacSecret());
-                ProtocolMessage message = ProtocolMessage.newBuilder().setBackup(backupBlockBuilder).build();
-
-                for (NettyClient client : usersForReplication) {
-                    try {
-                        ChannelFuture future = client.write(message);
-
-                        // after sucessfully sending a backup-message to the user add him as unverified location
-                        future.addListener((ChannelFutureListener) channelFuture -> {
-                            if (channelFuture.isSuccess()) {
-                                Optional<DataLocation> optionalLocation = this.dataLocationRepository.findByBlockMetaDataIdAndUserId(bmd.getId(), client.getUser().getId());
-                                if (optionalLocation.isEmpty()) {
-                                    this.dataLocationRepository.save(new DataLocation(bmd, client.getUser().getId(), LocalDateTime.now(ZoneOffset.UTC).minus(this.p2PBackupProperties.getVerificationProperties().getDurationBeforeVerificationInvalid())));
-                                }
-                            }
-                        });
-                    } catch (RuntimeException e) {
-                        LOGGER.warn("unable to send backup-block to {}", client.getUser().getId());
-                    }
+                nrOfProcessedUploads++;
+                if (nrOfProcessedUploads % 100 == 0) {
+                    LOGGER.info("processed {}/{} entries for distribution, {} distributed", nrOfProcessedUploads, totalNrOfDistributableBlocks, nrOfSuccessfullDistributions);
                 }
-
             }
         }
 
-        LOGGER.info("deleting all cloudUploads with enough replicas");
-        for (CloudUpload cloudUpload : cloudUploadsToDelete) {
-            this.cloudUploadService.removeCloudUpload(cloudUpload);
+        if (nrOfProcessedUploads > 0) {
+            LOGGER.info("processed {}/{} entries for distribution, {} distributed. stop and continue with next run.", nrOfProcessedUploads, totalNrOfDistributableBlocks, nrOfSuccessfullDistributions);
         }
 
-        LOGGER.info("finished distributing blocks to other users");
+        if (nrOfDeletedCloudUploads > 0) {
+            LOGGER.info("deleted {} cloudUploads", nrOfDeletedCloudUploads);
+        }
+
+        LOGGER.trace("end distributeBlocks");
+    }
+
+    /**
+     * Finds users to distribute the given block to and sends them the BackupBlock-message.
+     *
+     * @param cloudUpload the cloud-upload-entry for the block with the download-url
+     * @param bmd         metadata of the block
+     * @return true if the block could be distributed to an other user, otherwise false
+     */
+    private boolean distributeBlock(CloudUpload cloudUpload, BlockMetaData bmd) {
+        List<NettyClient> usersForReplication = this.getUsersForReplication(bmd);
+        if (CollectionUtils.isEmpty(usersForReplication)) {
+            LOGGER.debug("for backup-block {} are no other users online to backup to", cloudUpload.getBlockMetaData().getId());
+            return false;
+        }
+
+        var backupBlockBuilder = BackupBlock.newBuilder().setId(bmd.getId()).setDownloadURL(cloudUpload.getShareUrl())
+                .setMacOfBlock(cloudUpload.getEncryptedBlockMac()).setMacSecret(cloudUpload.getMacSecret());
+        ProtocolMessage message = ProtocolMessage.newBuilder().setBackup(backupBlockBuilder).build();
+
+        for (NettyClient client : usersForReplication) {
+            try {
+                ChannelFuture future = client.write(message);
+
+                // after sucessfully sending a backup-message to the user add him as unverified location
+                future.addListener(new SuccessListener(() -> {
+                    Optional<DataLocation> optionalLocation = this.dataLocationRepository.findByBlockMetaDataIdAndUserId(bmd.getId(), client.getUser().getId());
+                    if (optionalLocation.isEmpty()) {
+                        this.dataLocationRepository.save(new DataLocation(bmd, client.getUser().getId(), LocalDateTime.now(ZoneOffset.UTC).minus(this.p2PBackupProperties.getVerificationProperties().getDurationBeforeVerificationInvalid())));
+                    }
+                }));
+            } catch (RuntimeException e) {
+                LOGGER.warn("unable to send backup-block to {}", client.getUser().getId());
+                return false;
+            }
+        }
+        return true;
     }
 
     private List<NettyClient> getUsersForReplication(BlockMetaData bmd) {
@@ -160,7 +196,7 @@ public class DistributionServiceImpl implements DistributionService {
         Collections.shuffle(appliableUsersForReplication);
 
         // return needed amount of clients for replication
-        return appliableUsersForReplication.subList(0, Math.min((int) BackupConstants.NR_OF_REPLICAS - this.getNumberOfVerifiedReplicas(bmd), appliableUsersForReplication.size()));
+        return appliableUsersForReplication.subList(0, Math.min(this.p2PBackupProperties.getMinimalReplicas() - this.getNumberOfVerifiedReplicas(bmd), appliableUsersForReplication.size()));
     }
 
     private Optional<NettyClient> getUsersForBlockRequest(BlockMetaData bmd) {
@@ -196,12 +232,15 @@ public class DistributionServiceImpl implements DistributionService {
     }
 
     @Override
+    public boolean hasNotEnoughVerifiedReplicas(String bmdId) {
+        return this.blockMetaDataRepository.hasNotEnoughVerifiedReplicas(bmdId, this.p2PBackupProperties.getMinimalReplicas(), this.calulateVerificationInvalidDateTime());
+    }
+
+    @Override
     public void verifyEnoughReplicas() {
-        LOGGER.trace("verifyEnoughReplicas()");
+        LOGGER.trace("begin verifyEnoughReplicas()");
 
-        LOGGER.info("verify if there are enough replicas of each block");
-
-        List<BlockMetaData> blocksWithNotEnoughReplicas = this.blockMetaDataRepository.findBlocksWithNotEnoughVerifiedReplicas(BackupConstants.NR_OF_REPLICAS, this.calulateVerificationInvalidDateTime());
+        List<BlockMetaData> blocksWithNotEnoughReplicas = this.blockMetaDataRepository.findBlocksWithNotEnoughVerifiedReplicas(this.p2PBackupProperties.getMinimalReplicas(), this.calulateVerificationInvalidDateTime());
         if (!blocksWithNotEnoughReplicas.isEmpty()) {
             LOGGER.info("found {} blocks with not enough replicas", blocksWithNotEnoughReplicas.size());
 
@@ -216,5 +255,26 @@ public class DistributionServiceImpl implements DistributionService {
         }
 
         LOGGER.trace("end verifyEnoughReplicas");
+    }
+
+    @Override
+    public Map<Integer, Long> getNumberOfVerifiedReplicasStatistic() {
+        LocalDateTime verificationInvalidDate = this.calulateVerificationInvalidDateTime();
+        LinkedHashMap<Integer, Long> nrOfReplicas = new LinkedHashMap<>();
+        for (int i = 0; i <= this.p2PBackupProperties.getMinimalReplicas() * 2; i++) {
+            Long nrOfVerifiedReplicas = this.blockMetaDataRepository.countNumberOfVerifiedReplicas(i, verificationInvalidDate);
+            nrOfReplicas.put(i, nrOfVerifiedReplicas);
+        }
+        return nrOfReplicas;
+    }
+
+    @Override
+    public Map<Integer, Long> getNumberOfReplicasStatistic() {
+        LinkedHashMap<Integer, Long> nrOfReplicas = new LinkedHashMap<>();
+        for (int i = 0; i <= this.p2PBackupProperties.getMinimalReplicas() * 2; i++) {
+            Long nr = this.blockMetaDataRepository.countNumberOfReplicas(i);
+            nrOfReplicas.put(i, nr);
+        }
+        return nrOfReplicas;
     }
 }

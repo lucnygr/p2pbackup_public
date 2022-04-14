@@ -1,23 +1,26 @@
 package at.lucny.p2pbackup.restore.service;
 
-import at.lucny.p2pbackup.application.config.P2PBackupProperties;
 import at.lucny.p2pbackup.backup.dto.BackupIndex;
 import at.lucny.p2pbackup.backup.dto.PathDataVersion;
 import at.lucny.p2pbackup.backup.support.BackupConstants;
 import at.lucny.p2pbackup.configuration.support.ConfigurationConstants;
 import at.lucny.p2pbackup.configuration.support.RecoveryState;
-import at.lucny.p2pbackup.core.domain.*;
+import at.lucny.p2pbackup.core.domain.BlockMetaData;
+import at.lucny.p2pbackup.core.domain.RootDirectory;
 import at.lucny.p2pbackup.core.repository.BlockMetaDataRepository;
-import at.lucny.p2pbackup.core.repository.PathDataRepository;
 import at.lucny.p2pbackup.core.repository.RootDirectoryRepository;
 import at.lucny.p2pbackup.core.support.HashUtils;
+import at.lucny.p2pbackup.core.support.UserInputHelper;
 import at.lucny.p2pbackup.network.dto.ProtocolMessage;
 import at.lucny.p2pbackup.network.service.ClientService;
 import at.lucny.p2pbackup.network.service.NettyClient;
-import at.lucny.p2pbackup.restore.domain.*;
+import at.lucny.p2pbackup.restore.domain.RecoverBackupIndex;
+import at.lucny.p2pbackup.restore.domain.RecoverRootDirectory;
+import at.lucny.p2pbackup.restore.domain.RestoreType;
+import at.lucny.p2pbackup.restore.dto.PathDataAndVersion;
 import at.lucny.p2pbackup.restore.repository.RecoverBackupIndexRepository;
-import at.lucny.p2pbackup.restore.repository.RestoreBlockDataRepository;
-import at.lucny.p2pbackup.restore.repository.RestorePathRepository;
+import at.lucny.p2pbackup.restore.service.worker.RecoverMetadataWorker;
+import at.lucny.p2pbackup.restore.service.worker.RestoreTaskWorker;
 import com.google.protobuf.InvalidProtocolBufferException;
 import lombok.SneakyThrows;
 import lombok.Synchronized;
@@ -25,13 +28,14 @@ import org.apache.commons.configuration2.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.validation.annotation.Validated;
 
-import java.io.Console;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -39,7 +43,10 @@ import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -48,49 +55,54 @@ public class RecoveryServiceImpl implements RecoveryService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RecoveryServiceImpl.class);
 
-    private final P2PBackupProperties p2PBackupProperties;
-
-    private final PlatformTransactionManager txManager;
-
     private final BlockMetaDataRepository blockMetaDataRepository;
-
-    private final RestoreBlockDataRepository restoreBlockDataRepository;
 
     private final ClientService clientService;
 
     private final RootDirectoryRepository rootDirectoryRepository;
 
-    private final PathDataRepository pathDataRepository;
-
     private final RecoverBackupIndexRepository recoverBackupIndexRepository;
 
-    private final RestorePathRepository restorePathRepository;
     private final Configuration configuration;
 
     private final HashUtils hashUtils = new HashUtils();
 
-    public RecoveryServiceImpl(P2PBackupProperties p2PBackupProperties, PlatformTransactionManager txManager, BlockMetaDataRepository blockMetaDataRepository, RestoreBlockDataRepository restoreBlockDataRepository, @Lazy ClientService clientService, RootDirectoryRepository rootDirectoryRepository, PathDataRepository pathDataRepository, RecoverBackupIndexRepository recoverBackupIndexRepository, RestorePathRepository restorePathRepository, Configuration configuration) {
-        this.p2PBackupProperties = p2PBackupProperties;
-        this.txManager = txManager;
+    private final RestoreTaskWorker restoreTaskService;
+
+    private final RecoverMetadataWorker recoverMetadataWorker;
+
+    public RecoveryServiceImpl(BlockMetaDataRepository blockMetaDataRepository, @Lazy ClientService clientService, RootDirectoryRepository rootDirectoryRepository, RecoverBackupIndexRepository recoverBackupIndexRepository, Configuration configuration, RestoreTaskWorker restoreTaskService, RecoverMetadataWorker recoverMetadataWorker) {
         this.blockMetaDataRepository = blockMetaDataRepository;
-        this.restoreBlockDataRepository = restoreBlockDataRepository;
         this.clientService = clientService;
         this.rootDirectoryRepository = rootDirectoryRepository;
-        this.pathDataRepository = pathDataRepository;
         this.recoverBackupIndexRepository = recoverBackupIndexRepository;
-        this.restorePathRepository = restorePathRepository;
         this.configuration = configuration;
+        this.restoreTaskService = restoreTaskService;
+        this.recoverMetadataWorker = recoverMetadataWorker;
     }
 
     @Override
-    public void recoverBackupIndex() {
-        LOGGER.trace("begin recoverBackupIndex");
+    public void initializeRecoveryMode() {
+        if (!this.configuration.containsKey(ConfigurationConstants.PROPERTY_RECOVERY_STATE)) {
+            this.configuration.setProperty(ConfigurationConstants.PROPERTY_RECOVERY_STATE, RecoveryState.INITIALIZED);
+        }
+        LOGGER.info("application is now in recovery-mode");
+    }
 
-        this.configuration.setProperty(ConfigurationConstants.PROPERTY_RECOVERY_STATE, RecoveryState.INITIALIZED);
+    @Override
+    public boolean isRecoveryActive() {
+        return this.configuration.containsKey(ConfigurationConstants.PROPERTY_RECOVERY_STATE);
+    }
+
+    @Override
+    public void requestBackupIndex() {
+        LOGGER.trace("begin requestBackupIndex()");
+
+        this.initializeRecoveryMode();
 
         List<NettyClient> clients = this.clientService.getClients();
         for (NettyClient client : clients) {
-            if (client.isConnected()) {
+            if (this.clientService.isOnline(client)) {
                 LOGGER.debug("sending request to recover backup-index to {}", client.getUser().getId());
                 var request = at.lucny.p2pbackup.network.dto.RecoverBackupIndex.newBuilder().build();
                 ProtocolMessage message = ProtocolMessage.newBuilder().setRecoverBackupIndex(request).build();
@@ -104,7 +116,7 @@ public class RecoveryServiceImpl implements RecoveryService {
             }
         }
 
-        LOGGER.trace("end recoverBackupIndex");
+        LOGGER.trace("end requestBackupIndex()");
     }
 
     @Override
@@ -113,13 +125,9 @@ public class RecoveryServiceImpl implements RecoveryService {
         LOGGER.trace("begin recoverBlockMetaData(userId={}, blockIds={})", userId, blockIds.size());
 
         LOGGER.info("user {} saves {} blocks - restore block-meta-data and add user {} as data-location", userId, blockIds.size(), userId);
-        TransactionTemplate template = new TransactionTemplate(this.txManager);
         // persist all blocks that the given userId holds
         for (String blockId : blockIds) {
-            template.executeWithoutResult(status -> {
-                BlockMetaData bmd = this.createOrUpdateBlockMetaData(userId, blockId, null);
-                this.createOrUpdateRestoreBlockData(bmd, RestoreType.RECOVER);
-            });
+            this.recoverMetadataWorker.createOrUpdateBlockMetaDataAndAddLocation(blockId, userId);
         }
 
         LOGGER.trace("end recoverBlockMetaData");
@@ -144,12 +152,8 @@ public class RecoveryServiceImpl implements RecoveryService {
             }
 
             LOGGER.debug("saving block-meta-data for {} version-blocks", backupIndex.getVersionBlockIdsList().size());
-            TransactionTemplate template = new TransactionTemplate(this.txManager);
             for (String blockId : backupIndex.getVersionBlockIdsList()) {
-                template.executeWithoutResult(status -> {
-                    BlockMetaData bmd = this.createOrUpdateBlockMetaData(null, blockId, null);
-                    this.createOrUpdateRestoreBlockData(bmd, RestoreType.RECOVER);
-                });
+                this.recoverMetadataWorker.createOrUpdateBlockMetaData(blockId, null);
             }
 
             LOGGER.info("recovered backup-index {}/{} from user {}", backupIndex.getDate(), backupDate, userId);
@@ -165,19 +169,6 @@ public class RecoveryServiceImpl implements RecoveryService {
     @Transactional(readOnly = true)
     public List<RecoverBackupIndex> getAllRestoreBackupIndizes() {
         return this.recoverBackupIndexRepository.findAll();
-    }
-
-    private String readDestinationDirectoryForRootDirectory(String name) {
-        String directory = null;
-        Console console = System.console();
-        if (console != null) {
-            directory = console.readLine("Please input the destination-directory for the root-directory {}:", name);
-        } else {
-            System.out.println("Please input the destination-directory for the root-directory " + name + ":");
-            Scanner scanner = new Scanner(System.in);
-            directory = scanner.nextLine();
-        }
-        return directory;
     }
 
     @Override
@@ -196,68 +187,45 @@ public class RecoveryServiceImpl implements RecoveryService {
         LOGGER.info("start recovery for backup with id {} and date {}", idOfBackupIndex, index.getDate());
 
         for (RecoverRootDirectory recoverRootDirectory : index.getRootDirectories()) {
-            String destinationDirectory = this.readDestinationDirectoryForRootDirectory(recoverRootDirectory.getName());
+            String destinationDirectory = new UserInputHelper().read(String.format("Please input the destination-directory for the root-directory %s:", recoverRootDirectory.getName()));
             Path rootDirectoryRecoveryDir = Paths.get(destinationDirectory);
             if (!Files.isDirectory(rootDirectoryRecoveryDir)) {
                 LOGGER.info("recover-directory {} is not a directory", rootDirectoryRecoveryDir);
                 return;
             }
 
-            LOGGER.debug("recover root-directory {} to directory {}", recoverRootDirectory.getName(), rootDirectoryRecoveryDir);
+            LOGGER.info("recover root-directory {} to directory {}", recoverRootDirectory.getName(), rootDirectoryRecoveryDir);
             Files.createDirectories(rootDirectoryRecoveryDir);
             if (!this.rootDirectoryRepository.existsById(recoverRootDirectory.getId())) {
                 this.rootDirectoryRepository.save(new RootDirectory(recoverRootDirectory.getId(), recoverRootDirectory.getName(), rootDirectoryRecoveryDir));
             }
         }
+        this.rootDirectoryRepository.flush();
 
+        // create recover-tasks for all blocks
+        Pageable page = PageRequest.of(0, 100, Sort.Direction.ASC, "id");
+        Page<BlockMetaData> blockMetaDataPage = this.blockMetaDataRepository.findAll(page);
+        while (blockMetaDataPage.hasContent()) {
+            for (BlockMetaData bmd : blockMetaDataPage.getContent()) {
+                this.restoreTaskService.createOrUpdateRestoreBlockData(bmd, RestoreType.RECOVER);
+            }
+            if (blockMetaDataPage.hasNext()) {
+                blockMetaDataPage = this.blockMetaDataRepository.findAll(blockMetaDataPage.nextPageable());
+            } else {
+                break;
+            }
+        }
+
+        // create recover-and-restore-data-tasks for all blocks of the requested version
         for (String blockId : indexOptional.get().getVersionBlockIds()) {
-            this.createOrUpdateRestoreBlockData(this.blockMetaDataRepository.getById(blockId), RestoreType.RECOVER_META_DATA_AND_RESTORE_DATA);
+            this.restoreTaskService.createOrUpdateRestoreBlockData(this.blockMetaDataRepository.getById(blockId), RestoreType.RECOVER_META_DATA_AND_RESTORE_DATA);
         }
 
         this.configuration.setProperty(ConfigurationConstants.PROPERTY_RECOVERY_STATE, RecoveryState.RECOVER_DATA);
 
-        // todo delete all?
-        for (RecoverBackupIndex unusedIndex : this.recoverBackupIndexRepository.findByIdNot(idOfBackupIndex)) {
-            this.recoverBackupIndexRepository.delete(unusedIndex);
-        }
+        this.recoverBackupIndexRepository.deleteAll();
 
         LOGGER.trace("end startRecovery");
-    }
-
-    private BlockMetaData createOrUpdateBlockMetaData(String userId, String blockId, String hash) {
-        // create new block meta data if none exists for the block id
-        Optional<BlockMetaData> bmdOptional = this.blockMetaDataRepository.findByIdFetchLocations(blockId);
-        BlockMetaData bmd = null;
-        if (bmdOptional.isEmpty()) {
-            bmd = this.blockMetaDataRepository.save(new BlockMetaData(blockId, hash));
-        } else {
-            bmd = bmdOptional.get();
-            if (hash != null) {
-                if (bmd.getHash() != null && !hash.equals(bmd.getHash())) {
-                    throw new IllegalStateException("block " + blockId + " already has hash " + bmd.getHash() + ", but the hash " + hash + " should be set");
-                }
-                bmd.setHash(hash);
-            }
-        }
-
-        // set the user if its set for the block
-        if (userId != null && bmd.getLocations().stream().filter(l -> l.getUserId().equals(userId)).findFirst().isEmpty()) {
-            // if the user is not already added as location we have to add him
-            bmd.getLocations().add(new DataLocation(bmd, userId, LocalDateTime.now(ZoneOffset.UTC).minus(this.p2PBackupProperties.getVerificationProperties().getDurationBeforeVerificationInvalid())));
-        }
-
-        return bmd;
-    }
-
-    private RestoreBlockData createOrUpdateRestoreBlockData(BlockMetaData bmd, RestoreType restoreType) {
-        BlockMetaDataId bmdId = new BlockMetaDataId(bmd);
-        Optional<RestoreBlockData> restoreBlockDataOptional = this.restoreBlockDataRepository.findById(bmdId);
-        if (restoreBlockDataOptional.isEmpty()) {
-            return this.restoreBlockDataRepository.save(new RestoreBlockData(bmdId, restoreType));
-        } else if (restoreType.ordinal() > restoreBlockDataOptional.get().getType().ordinal()) { // only "upgrade" the restore type
-            restoreBlockDataOptional.get().setType(restoreType);
-        }
-        return restoreBlockDataOptional.get();
     }
 
     @Override
@@ -268,17 +236,22 @@ public class RecoveryServiceImpl implements RecoveryService {
         // is the block an index-block?
         if (blockId.startsWith(BackupConstants.BACKUP_INDEX_BLOCK_PREFIX)) {
             LOGGER.debug("block {} is an index-block", blockId);
-            BlockMetaData bmd = this.createOrUpdateBlockMetaData(userId, blockId, null);
-            this.restoreBlockDataRepository.deleteAllById(Collections.singletonList(new BlockMetaDataId(bmd)));
-            LOGGER.trace("end recoverMetaData: return false");
+            LOGGER.trace("end recoverMetaData(userId={}, blockId={}, data={} remaining: return false", userId, blockId, data.remaining());
             return false;
         }
 
         // is the block a path-data-version-block?
-        Optional<PathDataVersion> optionalPathDataVersion = this.parsePathDataVersion(data);
+        Optional<PathDataVersion> optionalPathDataVersion = this.recoverMetadataWorker.parsePathDataVersion(data);
         if (optionalPathDataVersion.isPresent()) {
             LOGGER.debug("block {} is a PathDataVersion-block", blockId);
-            this.recoverPathVersion(userId, blockId, optionalPathDataVersion.get());
+            PathDataAndVersion pathDataAndVersion = this.recoverMetadataWorker.recoverPathVersion(blockId, optionalPathDataVersion.get());
+            if (userId != null) {
+                this.recoverMetadataWorker.addLocation(userId, blockId);
+            }
+            Path restorePath = Paths.get(pathDataAndVersion.pathData().getRootDirectory().getPath()).resolve(pathDataAndVersion.pathData().getPath());
+            this.restoreTaskService.updateRestoreTasksForFile(blockId, pathDataAndVersion.pathVersion(), restorePath);
+
+
             LOGGER.trace("end recoverMetaData: return false");
             return false;
         }
@@ -286,65 +259,12 @@ public class RecoveryServiceImpl implements RecoveryService {
         // otherwise it's a data-block
         LOGGER.debug("block {} is a data-block", blockId);
         String hash = this.hashUtils.generateBlockHash(data.duplicate());
-        this.createOrUpdateBlockMetaData(userId, blockId, hash);
+        this.recoverMetadataWorker.createOrUpdateBlockMetaData(blockId, hash);
+        if (userId != null) {
+            this.recoverMetadataWorker.addLocation(userId, blockId);
+        }
 
         LOGGER.trace("end recoverMetaData: return true");
         return true;
-    }
-
-    private Optional<PathDataVersion> parsePathDataVersion(ByteBuffer data) {
-        try {
-            PathDataVersion pathDataVersion = PathDataVersion.parseFrom(data.duplicate());
-            return Optional.of(pathDataVersion);
-        } catch (InvalidProtocolBufferException e) {
-            LOGGER.trace("given data was not of type PathDataVersion: {}", e.getMessage());
-            return Optional.empty();
-        }
-    }
-
-    private void recoverPathVersion(String userId, String blockId, PathDataVersion pathDataVersion) {
-        RootDirectory rootDirectory = this.rootDirectoryRepository.findById(pathDataVersion.getRootDirectoryId()).orElseThrow(() -> new IllegalStateException("Unknown root directory with id " + pathDataVersion.getRootDirectoryId()));
-        PathData pathData = this.pathDataRepository.findByRootDirectoryAndPath(rootDirectory, pathDataVersion.getPath()).orElse(new PathData(rootDirectory, pathDataVersion.getPath()));
-
-        LocalDateTime timestampOfVersion = LocalDateTime.ofInstant(Instant.ofEpochMilli(pathDataVersion.getDate()), ZoneOffset.UTC);
-        if (pathData.getVersions().stream().anyMatch(v -> v.getDate().isEqual(timestampOfVersion))) {
-            return;
-        }
-
-        PathVersion version = null;
-        if (pathDataVersion.getDeleted()) {
-            version = new PathVersion(timestampOfVersion, true);
-        } else {
-            version = new PathVersion(timestampOfVersion, pathDataVersion.getHash());
-
-            for (String dataBlockId : pathDataVersion.getBlockIdsList()) {
-                BlockMetaData bmd = this.createOrUpdateBlockMetaData(null, dataBlockId, null);
-                version.getBlocks().add(bmd);
-            }
-        }
-        version.setVersionBlock(this.createOrUpdateBlockMetaData(userId, blockId, null));
-
-        pathData.getVersions().add(version);
-        this.pathDataRepository.save(pathData);
-
-        Optional<RestoreBlockData> restoreBlockDataOptional = this.restoreBlockDataRepository.findById(new BlockMetaDataId(this.blockMetaDataRepository.getById(blockId)));
-        if (restoreBlockDataOptional.isPresent()) {
-            // we only need to request data for not deleted files
-            if (Boolean.FALSE.equals(version.getDeleted())) {
-                Set<RestoreBlockData> restoreBlockDataSet = new HashSet<>();
-                for (BlockMetaData bmd : version.getBlocks()) {
-                    // restore blocks with the same restore-type -> if the metadata was set to restore data then the block data must also be restored
-                    restoreBlockDataSet.add(this.createOrUpdateRestoreBlockData(bmd, restoreBlockDataOptional.get().getType()));
-                }
-
-                // add an entry to restore the file
-                if (restoreBlockDataOptional.get().getType() == RestoreType.RECOVER_META_DATA_AND_RESTORE_DATA) {
-                    RestorePath restorePath = new RestorePath(version, Paths.get(rootDirectory.getPath()).resolve(pathData.getPath()).toString());
-                    restorePath.getMissingBlocks().addAll(restoreBlockDataSet);
-                    this.restorePathRepository.save(restorePath);
-                }
-            }
-            this.restoreBlockDataRepository.deleteAllInBatch(Collections.singletonList(restoreBlockDataOptional.get()));
-        }
     }
 }

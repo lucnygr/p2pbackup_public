@@ -1,16 +1,18 @@
 package at.lucny.p2pbackup.test.integration;
 
 import at.lucny.p2pbackup.backup.service.BackupService;
-import at.lucny.p2pbackup.core.domain.BlockMetaDataId;
 import at.lucny.p2pbackup.core.domain.PathVersion;
 import at.lucny.p2pbackup.core.domain.RootDirectory;
 import at.lucny.p2pbackup.core.repository.PathVersionRepository;
+import at.lucny.p2pbackup.localstorage.service.RestorationStorageService;
 import at.lucny.p2pbackup.restore.domain.RestoreBlockData;
 import at.lucny.p2pbackup.restore.domain.RestorePath;
 import at.lucny.p2pbackup.restore.domain.RestoreType;
 import at.lucny.p2pbackup.restore.repository.RestoreBlockDataRepository;
 import at.lucny.p2pbackup.restore.repository.RestorePathRepository;
 import at.lucny.p2pbackup.restore.service.RestorationService;
+import at.lucny.p2pbackup.restore.service.RestoreManagementService;
+import org.apache.commons.io.FileUtils;
 import org.assertj.core.util.Lists;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -33,6 +35,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @ActiveProfiles({"integrationtest", "integrationtest_user1"})
@@ -45,9 +48,6 @@ class RestorationIntegrationTest extends BaseSingleApplicationIntegrationTest {
     private PathVersionRepository pathVersionRepository;
 
     @Autowired
-    private RestorationService restorationService;
-
-    @Autowired
     private RestorePathRepository restorePathRepository;
 
     @Autowired
@@ -56,6 +56,14 @@ class RestorationIntegrationTest extends BaseSingleApplicationIntegrationTest {
     @Autowired
     private PlatformTransactionManager txManager;
 
+    @Autowired
+    private RestoreManagementService restoreManagementService;
+
+    @Autowired
+    private RestorationStorageService restorationStorageService;
+
+    @Autowired
+    private RestorationService restorationService;
 
     @Value("classpath:testfile1.txt")
     private Resource testfile1;
@@ -90,6 +98,49 @@ class RestorationIntegrationTest extends BaseSingleApplicationIntegrationTest {
     }
 
     @Test
+    void testBeginRestore_withBlocksInLocalStorage_restoreFiles() throws Exception {
+        RootDirectory rootDirectory = this.getConfiguredRootDirectory();
+
+        Path directory = createDirectory(getDataDir().resolve("subdir"));
+        Path file1Path = directory.resolve("testfile1.txt");
+        Files.copy(this.testfile1.getFile().toPath(), file1Path);
+        Path file2Path = getDataDir().resolve("testfile2.txt");
+        Files.copy(this.testfile2.getFile().toPath(), file2Path);
+
+        this.backupService.backupRootDirectory(rootDirectory);
+        this.restoreManagementService.beginRestore(rootDirectory, LocalDateTime.now(ZoneOffset.UTC), getRestoreDir());
+
+        new TransactionTemplate(this.txManager).executeWithoutResult(status -> {
+            List<RestorePath> expectedRestorePaths = this.pathDataRepository.findAll().stream().map(pd -> {
+                PathVersion version = pd.getVersions().iterator().next();
+                RestorePath restorePath = new RestorePath(version, getRestoreDir().resolve(pd.getPath()).toString());
+                restorePath.getMissingBlocks().addAll(version.getBlocks().stream().map(b -> new RestoreBlockData(b, RestoreType.RESTORE)).toList());
+                return restorePath;
+            }).sorted(Comparator.comparing(RestorePath::getPath)).toList();
+
+            List<RestorePath> persistedRestorePaths = this.restorePathRepository.findAll().stream().sorted(Comparator.comparing(RestorePath::getPath)).toList();
+
+            for (int i = 0; i < persistedRestorePaths.size(); i++) {
+                assertThat(persistedRestorePaths.get(i).getId()).isNotNull();
+                assertThat(persistedRestorePaths.get(i).getPath()).isEqualTo(expectedRestorePaths.get(i).getPath());
+                assertThat(persistedRestorePaths.get(i).getPathVersion().getId()).isEqualTo(expectedRestorePaths.get(i).getPathVersion().getId());
+                assertThat(persistedRestorePaths.get(i).getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaData().getId()).toList())
+                        .containsExactlyInAnyOrderElementsOf(expectedRestorePaths.get(i).getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaData().getId()).toList());
+            }
+        });
+
+        //Files are in local storage so restore immediately
+        await().untilAsserted(() -> {
+            this.restorationService.restoreBlocks();
+
+            Path restoreFile1Path = createDirectory(getRestoreDir().resolve("subdir")).resolve("testfile1.txt");
+            Path restoreFile2Path = getRestoreDir().resolve("testfile2.txt");
+            assertThat(restoreFile1Path).exists().hasSameBinaryContentAs(file1Path);
+            assertThat(restoreFile2Path).exists().hasSameBinaryContentAs(file2Path);
+        });
+    }
+
+    @Test
     void testBeginRestore_withNewDirectory() throws Exception {
         RootDirectory rootDirectory = this.getConfiguredRootDirectory();
 
@@ -100,13 +151,14 @@ class RestorationIntegrationTest extends BaseSingleApplicationIntegrationTest {
         Files.copy(this.testfile2.getFile().toPath(), file2Path);
 
         this.backupService.backupRootDirectory(rootDirectory);
-        this.restorationService.beginRestore(rootDirectory, LocalDateTime.now(ZoneOffset.UTC), getRestoreDir());
+        FileUtils.cleanDirectory(getStorageDir().toFile());
+        this.restoreManagementService.beginRestore(rootDirectory, LocalDateTime.now(ZoneOffset.UTC), getRestoreDir());
 
         new TransactionTemplate(this.txManager).executeWithoutResult(status -> {
             List<RestorePath> expectedRestorePaths = this.pathDataRepository.findAll().stream().map(pd -> {
                 PathVersion version = pd.getVersions().iterator().next();
                 RestorePath restorePath = new RestorePath(version, getRestoreDir().resolve(pd.getPath()).toString());
-                restorePath.getMissingBlocks().addAll(version.getBlocks().stream().map(b -> new RestoreBlockData(new BlockMetaDataId(b), RestoreType.RESTORE)).toList());
+                restorePath.getMissingBlocks().addAll(version.getBlocks().stream().map(b -> new RestoreBlockData(b, RestoreType.RESTORE)).toList());
                 return restorePath;
             }).sorted(Comparator.comparing(RestorePath::getPath)).toList();
 
@@ -116,8 +168,8 @@ class RestorationIntegrationTest extends BaseSingleApplicationIntegrationTest {
                 assertThat(persistedRestorePaths.get(i).getId()).isNotNull();
                 assertThat(persistedRestorePaths.get(i).getPath()).isEqualTo(expectedRestorePaths.get(i).getPath());
                 assertThat(persistedRestorePaths.get(i).getPathVersion().getId()).isEqualTo(expectedRestorePaths.get(i).getPathVersion().getId());
-                assertThat(persistedRestorePaths.get(i).getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaDataId().getBlockMetaData().getId()).toList())
-                        .containsExactlyInAnyOrderElementsOf(expectedRestorePaths.get(i).getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaDataId().getBlockMetaData().getId()).toList());
+                assertThat(persistedRestorePaths.get(i).getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaData().getId()).toList())
+                        .containsExactlyInAnyOrderElementsOf(expectedRestorePaths.get(i).getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaData().getId()).toList());
             }
         });
     }
@@ -144,7 +196,7 @@ class RestorationIntegrationTest extends BaseSingleApplicationIntegrationTest {
                     .map(pd -> {
                         PathVersion version = pd.getVersions().stream().sorted(Comparator.comparing(PathVersion::getDate).reversed()).findFirst().get(); // get latest path version
                         RestorePath restorePath = new RestorePath(version, getRestoreDir().resolve(pd.getPath()).toString());
-                        restorePath.getMissingBlocks().addAll(version.getBlocks().stream().map(b -> new RestoreBlockData(new BlockMetaDataId(b), RestoreType.RESTORE)).toList());
+                        restorePath.getMissingBlocks().addAll(version.getBlocks().stream().map(b -> new RestoreBlockData(b, RestoreType.RESTORE)).toList());
                         return restorePath;
                     });
             assertThat(path).isPresent();
@@ -154,8 +206,9 @@ class RestorationIntegrationTest extends BaseSingleApplicationIntegrationTest {
         Files.writeString(file1Path, "Testdata2", StandardOpenOption.APPEND);
         Files.copy(this.testfile2.getFile().toPath(), file2Path);
         this.backupService.backupRootDirectory(rootDirectory);
+        FileUtils.cleanDirectory(getStorageDir().toFile());
 
-        this.restorationService.beginRestore(rootDirectory, restoreTimestamp, getRestoreDir());
+        this.restoreManagementService.beginRestore(rootDirectory, restoreTimestamp, getRestoreDir());
 
         assertThat(this.restorePathRepository.count()).isEqualTo(1);
 
@@ -165,14 +218,14 @@ class RestorationIntegrationTest extends BaseSingleApplicationIntegrationTest {
             assertThat(persistedRestorePath.getId()).isNotNull();
             assertThat(persistedRestorePath.getPath()).isEqualTo(expectedRestorePathAfterDelete.getPath());
             assertThat(persistedRestorePath.getPathVersion().getId()).isEqualTo(expectedRestorePathAfterDelete.getPathVersion().getId());
-            assertThat(persistedRestorePath.getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaDataId().getBlockMetaData().getId()).toList())
-                    .containsExactlyInAnyOrderElementsOf(expectedRestorePathAfterDelete.getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaDataId().getBlockMetaData().getId()).toList());
+            assertThat(persistedRestorePath.getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaData().getId()).toList())
+                    .containsExactlyInAnyOrderElementsOf(expectedRestorePathAfterDelete.getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaData().getId()).toList());
         });
 
         this.deleteRestorePathEntries();
         this.restoreBlockDataRepository.deleteAll();
 
-        this.restorationService.beginRestore(rootDirectory, LocalDateTime.now(ZoneOffset.UTC), getRestoreDir().resolve("subdir"));
+        this.restoreManagementService.beginRestore(rootDirectory, LocalDateTime.now(ZoneOffset.UTC), getRestoreDir().resolve("subdir"));
 
         new TransactionTemplate(this.txManager).executeWithoutResult(status -> {
             for (Path path : Lists.newArrayList(file1Path, file2Path)) {
@@ -180,7 +233,7 @@ class RestorationIntegrationTest extends BaseSingleApplicationIntegrationTest {
                         .map(pd -> {
                             PathVersion version = pd.getVersions().stream().sorted(Comparator.comparing(PathVersion::getDate).reversed()).findFirst().get(); // get latest path version
                             RestorePath restorePath = new RestorePath(version, getRestoreDir().resolve("subdir").resolve(pd.getPath()).toString());
-                            restorePath.getMissingBlocks().addAll(version.getBlocks().stream().map(b -> new RestoreBlockData(new BlockMetaDataId(b), RestoreType.RESTORE)).toList());
+                            restorePath.getMissingBlocks().addAll(version.getBlocks().stream().map(b -> new RestoreBlockData(b, RestoreType.RESTORE)).toList());
                             return restorePath;
                         });
                 assertThat(expectedRestorePath).isPresent();
@@ -191,8 +244,8 @@ class RestorationIntegrationTest extends BaseSingleApplicationIntegrationTest {
                 assertThat(persistedRestorePath.getId()).isNotNull();
                 assertThat(persistedRestorePath.getPath()).isEqualTo(expectedRestorePath.get().getPath());
                 assertThat(persistedRestorePath.getPathVersion().getId()).isEqualTo(expectedRestorePath.get().getPathVersion().getId());
-                assertThat(persistedRestorePath.getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaDataId().getBlockMetaData().getId()).toList())
-                        .containsExactlyInAnyOrderElementsOf(expectedRestorePath.get().getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaDataId().getBlockMetaData().getId()).toList());
+                assertThat(persistedRestorePath.getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaData().getId()).toList())
+                        .containsExactlyInAnyOrderElementsOf(expectedRestorePath.get().getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaData().getId()).toList());
             }
         });
     }

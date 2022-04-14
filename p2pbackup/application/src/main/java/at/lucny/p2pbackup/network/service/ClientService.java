@@ -20,5 +20,7 @@ public interface ClientService {
 
     boolean isOnline(@NotNull String userId);
 
+    boolean isOnline(@NotNull NettyClient client);
+
     void shutdownClients();
 }

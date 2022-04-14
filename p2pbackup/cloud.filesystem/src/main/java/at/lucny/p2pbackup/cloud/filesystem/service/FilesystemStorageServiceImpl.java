@@ -131,4 +131,9 @@ public class FilesystemStorageServiceImpl implements CloudStorageService {
         LOGGER.trace("end getFiles: return {}", files);
         return files;
     }
+
+    @Override
+    public List<String> list() {
+        return this.getFiles().stream().map(p -> p.getFileName().toString()).toList();
+    }
 }

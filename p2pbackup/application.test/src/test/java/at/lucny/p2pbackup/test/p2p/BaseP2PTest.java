@@ -4,7 +4,6 @@ import at.lucny.p2pbackup.test.BaseTest;
 import at.lucny.p2pbackup.user.service.UserService;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FileUtils;
-import org.assertj.core.util.Lists;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
@@ -36,21 +35,53 @@ abstract class BaseP2PTest extends BaseTest {
 
     private final Map<String, Integer> userToPort = new HashMap<>();
 
-    protected void startContextForUser1And2() {
+    protected void startContextForUser1() {
         this.ctxUser1 = this.createApplication("user1");
-        this.ctxUser2 = this.createApplication("user2");
 
         this.addUser(this.ctxUser1, "user2", true, true);
+        this.addUser(this.ctxUser1, "user3", true, true);
+        if (this.ctxUser2 != null) {
+            this.addUser(this.ctxUser2, "user1", true, true);
+        }
+        if (this.ctxUser3 != null) {
+            this.addUser(this.ctxUser3, "user1", true, true);
+        }
+    }
+
+    protected void startContextForUser2() {
+        this.ctxUser2 = this.createApplication("user2");
+
         this.addUser(this.ctxUser2, "user1", true, true);
+        this.addUser(this.ctxUser2, "user3", true, true);
+
+        if (this.ctxUser1 != null) {
+            this.addUser(this.ctxUser1, "user2", true, true);
+        }
+        if (this.ctxUser3 != null) {
+            this.addUser(this.ctxUser3, "user2", true, true);
+        }
     }
 
     protected void startContextForUser3() {
         this.ctxUser3 = this.createApplication("user3");
 
-        this.addUser(this.ctxUser1, "user3", true, true);
-        this.addUser(this.ctxUser2, "user3", true, true);
         this.addUser(this.ctxUser3, "user1", true, true);
         this.addUser(this.ctxUser3, "user2", true, true);
+
+        if (this.ctxUser1 != null) {
+            this.addUser(this.ctxUser1, "user3", true, true);
+        }
+        if (this.ctxUser2 != null) {
+            this.addUser(this.ctxUser2, "user3", true, true);
+        }
+    }
+
+    @SneakyThrows
+    protected void addUser(ConfigurableApplicationContext ctx, String user, boolean allowBackupDataFromUser, boolean allowBackupDataToUser) {
+        if (this.userToPort.containsKey(user)) {
+            UserService userService = ctx.getBean(UserService.class);
+            userService.addUser(user, "localhost", this.userToPort.get(user), ResourceUtils.getFile("classpath:" + user + "/" + user + ".cer").toPath(), allowBackupDataFromUser, allowBackupDataToUser, false);
+        }
     }
 
     @SneakyThrows
@@ -66,31 +97,44 @@ abstract class BaseP2PTest extends BaseTest {
         return testfile1.toPath();
     }
 
-    @SneakyThrows
-    protected void addUser(ConfigurableApplicationContext ctx, String user, boolean allowBackupDataFromUser, boolean allowBackupDataToUser) {
-        UserService userService = ctx.getBean(UserService.class);
-        userService.addUser(user, "localhost", this.userToPort.get(user), ResourceUtils.getFile("classpath:" + user + "/" + user + ".cer").toPath(), allowBackupDataFromUser, allowBackupDataToUser, false);
+    protected void stopContextForUser1() throws IOException {
+        if (this.ctxUser1 != null) {
+            this.ctxUser1.close();
+            this.ctxUser1 = null;
+        }
+        this.cleanDirectories("user1");
     }
+
+    protected void stopContextForUser2() throws IOException {
+        if (this.ctxUser2 != null) {
+            this.ctxUser2.close();
+            this.ctxUser2 = null;
+        }
+        this.cleanDirectories("user2");
+    }
+
+    protected void stopContextForUser3() throws IOException {
+        if (this.ctxUser3 != null) {
+            this.ctxUser3.close();
+            this.ctxUser3 = null;
+        }
+        this.cleanDirectories("user3");
+    }
+
+    private void cleanDirectories(String user) throws IOException {
+        FileUtils.cleanDirectory(this.getConfigDir(user).toFile());
+        FileUtils.cleanDirectory(this.getDataDir(user).toFile());
+        FileUtils.cleanDirectory(this.getStorageDir(user).toFile());
+        FileUtils.cleanDirectory(this.getCloudProviderDir(user).toFile());
+        FileUtils.cleanDirectory(this.getRestoreDir(user).toFile());
+    }
+
 
     @AfterEach
     void afterEach() throws IOException {
-        if (this.ctxUser1 != null) {
-            this.ctxUser1.close();
-        }
-        if (this.ctxUser2 != null) {
-            this.ctxUser2.close();
-        }
-        if (this.ctxUser3 != null) {
-            this.ctxUser3.close();
-        }
-
-        for (String user : Lists.newArrayList("user1", "user2", "user3")) {
-            FileUtils.cleanDirectory(this.getConfigDir(user).toFile());
-            FileUtils.cleanDirectory(this.getDataDir(user).toFile());
-            FileUtils.cleanDirectory(this.getStorageDir(user).toFile());
-            FileUtils.cleanDirectory(this.getCloudProviderDir(user).toFile());
-            FileUtils.cleanDirectory(this.getRestoreDir(user).toFile());
-        }
+        this.stopContextForUser1();
+        this.stopContextForUser2();
+        this.stopContextForUser3();
     }
 
     protected Path getConfigDir(String user) {
@@ -119,6 +163,7 @@ abstract class BaseP2PTest extends BaseTest {
         SpringApplicationBuilder builder = new SpringApplicationBuilder(TestP2PBackupApplication.class);
         Map<String, Object> properties = new HashMap<>();
         properties.put("at.lucny.p2p-backup.user", user);
+        properties.put("at.lucny.p2p-backup.minimal-replicas", 2);
         properties.put("at.lucny.p2p-backup.network.port", this.userToPort.get(user));
         properties.put("at.lucny.p2p-backup.keystore", "classpath:" + user + "/" + user + ".pfx");
         properties.put("at.lucny.p2p-backup.password", "password" + user);
@@ -131,7 +176,7 @@ abstract class BaseP2PTest extends BaseTest {
         properties.put("at.lucny.p2p-backup.init.disable-upload-agent", true);
         properties.put("at.lucny.p2p-backup.init.disable-distribution-agent", true);
         properties.put("at.lucny.p2p-backup.init.disable-restoration-agent", true);
-        properties.put("spring.datasource.url", "jdbc:hsqldb:mem:" + user + ";shutdown=true");
+        properties.put("spring.datasource.url", "jdbc:hsqldb:mem:" + user + System.currentTimeMillis() + ";shutdown=true");
         properties.put("spring.profiles.active", "integrationtest");
         List<String> arguments = properties.entrySet().stream().map(kv -> "--" + kv.getKey() + "=" + kv.getValue()).toList();
         return builder.run(arguments.toArray(new String[0]));

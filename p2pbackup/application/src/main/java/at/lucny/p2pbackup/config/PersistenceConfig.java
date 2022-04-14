@@ -2,6 +2,7 @@ package at.lucny.p2pbackup.config;
 
 import at.lucny.p2pbackup.application.config.P2PBackupProperties;
 import at.lucny.p2pbackup.core.service.CryptoService;
+import at.lucny.p2pbackup.core.support.UserInputHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,11 +28,19 @@ public class PersistenceConfig {
     public DataSource dataSource(@Value("${spring.datasource.url}") String databaseUrl, P2PBackupProperties p2PBackupProperties, CryptoService cryptoService) throws IOException {
         MACCheckingDataSource macCheckingDataSource = new MACCheckingDataSource(p2PBackupProperties, cryptoService);
 
-        String hexPassword = HexFormat.of().formatHex(cryptoService.getSecretKeyGenerator().generate(SALT_KDF_DATABASE_KEY).getEncoded());
-        String hexIv = HexFormat.of().formatHex(cryptoService.getSecretKeyGenerator().generate(SALT_KDF_DATABASE_IV, 128).getEncoded());
+        String dbUrl = databaseUrl;
+        if (Boolean.TRUE.equals(p2PBackupProperties.getDatabase().getEncrypt())) {
+            String hexPassword = HexFormat.of().formatHex(cryptoService.getSecretKeyGenerator().generate(SALT_KDF_DATABASE_KEY).getEncoded());
+            String hexIv = HexFormat.of().formatHex(cryptoService.getSecretKeyGenerator().generate(SALT_KDF_DATABASE_IV, 128).getEncoded());
+            dbUrl = databaseUrl + ";crypt_key=" + hexPassword + ";crypt_iv=" + hexIv + ";crypt_type=AES/CBC/PKCS5Padding";
+        } else {
+            String yesNo = new UserInputHelper().read("The database will not be stored encrypted, this is a security risk. Continue (Y/N)?:");
+            if (!"Y".equalsIgnoreCase(yesNo)) {
+                throw new IllegalArgumentException("Abort startup because database would be unencrypted");
+            }
+        }
+        LOGGER.debug("database url: {}", databaseUrl);
         var dataSourceBuilder = DataSourceBuilder.create();
-        String dbUrl = databaseUrl + ";crypt_key=" + hexPassword + ";crypt_iv=" + hexIv + ";crypt_type=AES/CBC/PKCS5Padding";
-        LOGGER.trace("database url: {}", dbUrl);
         DataSource dataSource = dataSourceBuilder
                 .url(dbUrl)
                 .build();

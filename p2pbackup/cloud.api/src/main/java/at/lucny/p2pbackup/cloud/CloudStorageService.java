@@ -2,6 +2,7 @@ package at.lucny.p2pbackup.cloud;
 
 import javax.validation.constraints.NotNull;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 
 public interface CloudStorageService {
@@ -48,4 +49,11 @@ public interface CloudStorageService {
      * @param filename the filename in the cloud-storage
      */
     void delete(@NotNull String filename);
+
+    /**
+     * Returns a list of all files on the cloud-storage.
+     *
+     * @return a list with the names of all files
+     */
+    @NotNull List<String> list();
 }

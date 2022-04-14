@@ -9,7 +9,16 @@ import java.util.Set;
 
 public interface RecoveryService {
 
-    void recoverBackupIndex();
+    void initializeRecoveryMode();
+
+    /**
+     * Returns true if there is currently an active recovery running.
+     *
+     * @return if recovery is active
+     */
+    boolean isRecoveryActive();
+
+    void requestBackupIndex();
 
     /**
      * Creates for each given block-id a {@link at.lucny.p2pbackup.core.domain.BlockMetaData}-entity and sets the given user-id as {@link at.lucny.p2pbackup.core.domain.DataLocation}.
@@ -20,7 +29,7 @@ public interface RecoveryService {
      */
     void recoverBlockMetaData(@NotNull String userId, @NotNull Set<String> blockIds);
 
-    void recoverBackupIndex(@NotNull String userId, @NotNull ByteBuffer backupIndexByteBuffer);
+    void recoverBackupIndex(String userId, @NotNull ByteBuffer backupIndexByteBuffer);
 
     /**
      * Creates restore-tasks for all version-blocks of the given backup-index
@@ -39,6 +48,6 @@ public interface RecoveryService {
      * @param data    the data of the block as byte-buffer
      * @return true if the recovered block was a data-block
      */
-    boolean recoverMetaData(@NotNull String userId, @NotNull String blockId, @NotNull ByteBuffer data);
+    boolean recoverMetaData(String userId, @NotNull String blockId, @NotNull ByteBuffer data);
 
 }

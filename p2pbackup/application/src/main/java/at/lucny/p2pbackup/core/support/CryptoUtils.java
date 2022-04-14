@@ -149,15 +149,6 @@ public class CryptoUtils {
             issuedCertBuilder.addExtension(Extension.authorityKeyIdentifier, false, issuedCertExtUtils.createAuthorityKeyIdentifier(rootCertificate));
             issuedCertBuilder.addExtension(Extension.subjectKeyIdentifier, false, issuedCertExtUtils.createSubjectKeyIdentifier(csr.getSubjectPublicKeyInfo()));
 
-            // Add intended key usage extension if needed
-            //issuedCertBuilder.addExtension(Extension.keyUsage, false, new KeyUsage(KeyUsage.keyEncipherment));
-
-            // Add DNS name is cert is to used for SSL
-            /*issuedCertBuilder.addExtension(Extension.subjectAlternativeName, false, new DERSequence(new ASN1Encodable[] {
-                    new GeneralName(GeneralName.dNSName, "mydomain.local"),
-                    new GeneralName(GeneralName.iPAddress, "127.0.0.1")
-            }));*/
-
             X509CertificateHolder issuedCertHolder = issuedCertBuilder.build(signer);
             X509Certificate issuedCert = new JcaX509CertificateConverter().setProvider(BC_PROVIDER).getCertificate(issuedCertHolder);
 

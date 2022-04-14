@@ -3,6 +3,7 @@ package at.lucny.p2pbackup.test.p2p;
 import at.lucny.p2pbackup.application.service.BackupAgent;
 import at.lucny.p2pbackup.application.service.CloudUploadAgent;
 import at.lucny.p2pbackup.application.service.DistributionAgent;
+import at.lucny.p2pbackup.backup.service.FixedSizeChunkerServiceImpl;
 import at.lucny.p2pbackup.core.domain.RootDirectory;
 import at.lucny.p2pbackup.core.repository.BlockMetaDataRepository;
 import at.lucny.p2pbackup.core.repository.CloudUploadRepository;
@@ -10,6 +11,7 @@ import at.lucny.p2pbackup.core.repository.RootDirectoryRepository;
 import at.lucny.p2pbackup.localstorage.service.RestorationStorageServiceImpl;
 import at.lucny.p2pbackup.restore.repository.RestorePathRepository;
 import at.lucny.p2pbackup.restore.service.RestorationService;
+import at.lucny.p2pbackup.restore.service.RestoreManagementService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -34,7 +36,8 @@ class RestorationTest extends BaseP2PTest {
     private byte[] contentOfBigFile;
 
     private void setupData() throws Exception {
-        this.startContextForUser1And2();
+        this.startContextForUser1();
+        this.startContextForUser2();
         this.startContextForUser3();
         this.copyFileToUserDataDir("user1", "testfile1.txt");
         this.copyFileToUserDataDir("user1", "testfile2.txt");
@@ -43,11 +46,13 @@ class RestorationTest extends BaseP2PTest {
         Path bigFile = createDirectory(getDataDir("user1").resolve("subdir")).resolve("testfile_big.txt");
         Files.write(bigFile, contentOfBigFile, StandardOpenOption.CREATE);
 
-        int nrOfBlocks = 6 + 1 + contentOfBigFile.length / (100 * 1024) + 1;
+        int nrOfBlocks = 6 + 1 + contentOfBigFile.length / (FixedSizeChunkerServiceImpl.BLOCK_SIZE) + 1;
         ctxUser1.getBean(BackupAgent.class).backup();
         await().untilAsserted(() -> assertThat(ctxUser1.getBean(BlockMetaDataRepository.class).count()).isEqualTo(nrOfBlocks));
-        ctxUser1.getBean(CloudUploadAgent.class).upload();
-        await().untilAsserted(() -> assertThat(ctxUser1.getBean(CloudUploadRepository.class).findAllByShareUrlIsNotNull(Pageable.unpaged())).hasSize(nrOfBlocks));
+        await().untilAsserted(() -> {
+            ctxUser1.getBean(CloudUploadAgent.class).upload();
+            assertThat(ctxUser1.getBean(CloudUploadRepository.class).findAllByShareUrlIsNotNull(Pageable.unpaged())).hasSize(nrOfBlocks);
+        });
         ctxUser1.getBean(DistributionAgent.class).distribute();
 
         await().untilAsserted(() -> assertThat(ctxUser1.getBean(CloudUploadRepository.class).count()).isZero());
@@ -69,8 +74,9 @@ class RestorationTest extends BaseP2PTest {
         this.setupData();
 
         RootDirectory rootDirectory = this.ctxUser1.getBean(RootDirectoryRepository.class).findAll().get(0);
+        RestoreManagementService restoreManagementService1 = this.ctxUser1.getBean(RestoreManagementService.class);
+        restoreManagementService1.beginRestore(rootDirectory, LocalDateTime.now(ZoneOffset.UTC), this.getRestoreDir("user1"));
         RestorationService restorationService1 = this.ctxUser1.getBean(RestorationService.class);
-        restorationService1.beginRestore(rootDirectory, LocalDateTime.now(ZoneOffset.UTC), this.getRestoreDir("user1"));
 
         await().untilAsserted(() -> {
             restorationService1.restoreBlocks();

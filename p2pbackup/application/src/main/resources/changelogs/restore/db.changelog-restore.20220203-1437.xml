@@ -39,11 +39,14 @@
             <column name="id" type="VARCHAR(256)">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="pk_restore_block_data"/>
             </column>
+            <column name="block_meta_data_id" type="VARCHAR(256)">
+                <constraints nullable="false"/>
+            </column>
         </createTable>
     </changeSet>
 
     <changeSet id="1643896629992-2" author="gregor" logicalFilePath="path-independent">
-        <addForeignKeyConstraint baseColumnNames="id" baseTableName="restore_block_data"
+        <addForeignKeyConstraint baseColumnNames="block_meta_data_id" baseTableName="restore_block_data"
                                  constraintName="FK_RESTORE_BLOCK_DATA_ON_ID" referencedColumnNames="id"
                                  referencedTableName="block_meta_data"/>
     </changeSet>

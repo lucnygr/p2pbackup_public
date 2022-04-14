@@ -1,6 +1,8 @@
 package at.lucny.p2pbackup.backup.service;
 
 import at.lucny.p2pbackup.backup.dto.Block;
+import at.lucny.p2pbackup.backup.service.worker.BackupServiceWorker;
+import at.lucny.p2pbackup.backup.support.BackupFileEvent;
 import at.lucny.p2pbackup.core.domain.BlockMetaData;
 import at.lucny.p2pbackup.core.domain.PathVersion;
 import at.lucny.p2pbackup.core.domain.RootDirectory;
@@ -11,6 +13,7 @@ import at.lucny.p2pbackup.core.support.HashUtils;
 import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -42,16 +45,19 @@ public class BackupServiceImpl implements BackupService {
 
     private final BackupServiceWorker backupServiceWorker;
 
-    public BackupServiceImpl(RootDirectoryRepository rootDirectoryRepository, PathDataRepository pathDataRepository, ChunkerService chunkerService, BackupServiceWorker backupServiceWorker) {
+    private final ApplicationEventPublisher applicationEventPublisher;
+
+    public BackupServiceImpl(RootDirectoryRepository rootDirectoryRepository, PathDataRepository pathDataRepository, ChunkerService chunkerService, BackupServiceWorker backupServiceWorker, ApplicationEventPublisher applicationEventPublisher) {
         this.rootDirectoryRepository = rootDirectoryRepository;
         this.pathDataRepository = pathDataRepository;
         this.chunkerService = chunkerService;
         this.backupServiceWorker = backupServiceWorker;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     @Override
     public Optional<RootDirectory> addRootDirectory(String name, String path) {
-        if(this.rootDirectoryRepository.findByName(name).isPresent()) {
+        if (this.rootDirectoryRepository.findByName(name).isPresent()) {
             LOGGER.info("Name {} already exists", name);
             return Optional.empty();
         }
@@ -139,11 +145,13 @@ public class BackupServiceImpl implements BackupService {
                         }
 
                         LOGGER.debug("backup new version for {}", wrapper.absoluteFilePath);
-                        BlockMetaData blockOfVersion = this.backupServiceWorker.addPathChangedVersionRecord(rootDirectory, wrapper.relativeFilePath, version);
+                        this.backupServiceWorker.addPathChangedVersionRecord(rootDirectory, wrapper.relativeFilePath, version);
+
+                        this.applicationEventPublisher.publishEvent(new BackupFileEvent(this, wrapper.absoluteFilePath));
                     });
         }
 
-        LOGGER.info("checking for deleted files");
+        LOGGER.info("processed {} files, checking for deleted files", nrOfFiles.get());
 
         for (String missingPathId : pathsThatNoLongerExist.values()) {
             LOGGER.debug("backup deleted version for path-id {}", missingPathId);

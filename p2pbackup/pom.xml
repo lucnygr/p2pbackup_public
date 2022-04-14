@@ -7,7 +7,7 @@
     <groupId>at.lucny.p2pbackup</groupId>
     <artifactId>p2pbackup</artifactId>
     <packaging>pom</packaging>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0.0</version>
 
     <modules>
         <module>application.api</module>
@@ -37,10 +37,12 @@
 
         <version.bouncycastle>1.69</version.bouncycastle>
         <version.protobuf>3.19.3</version.protobuf>
-        <version.spring.shell>2.0.0.RELEASE</version.spring.shell>
+        <version.spring.shell>2.0.1.RELEASE</version.spring.shell>
         <version.liquibase>4.9.1</version.liquibase>
         <version.google.client>1.32.1</version.google.client>
         <version.google.drive>v3-rev20211107-1.32.1</version.google.drive>
+
+        <sonar.exclusions>**/BackupIntegrationTest.java</sonar.exclusions>
     </properties>
 
     <dependencyManagement>
@@ -147,7 +149,7 @@
             <dependency>
                 <groupId>org.aarboard.nextcloud</groupId>
                 <artifactId>nextcloud-api</artifactId>
-                <version>12.0.0</version>
+                <version>12.0.2</version>
             </dependency>
 
             <!-- __________________________________________________________________________ -->

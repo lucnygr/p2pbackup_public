@@ -6,6 +6,7 @@ import at.lucny.p2pbackup.network.service.handler.ClientHandler;
 import at.lucny.p2pbackup.network.service.handler.ServerHandler;
 import at.lucny.p2pbackup.upload.service.CloudUploadService;
 import at.lucny.p2pbackup.upload.service.DistributionService;
+import at.lucny.p2pbackup.verification.service.VerificationService;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
@@ -28,10 +29,13 @@ public class DistributionHandler extends MessageToMessageDecoder<ProtocolMessage
 
     private final DistributionService distributionService;
 
-    public DistributionHandler(CloudUploadService cloudUploadService, LocalStorageService localStorageService, DistributionService distributionService) {
+    private final VerificationService verificationService;
+
+    public DistributionHandler(CloudUploadService cloudUploadService, LocalStorageService localStorageService, DistributionService distributionService, VerificationService verificationService) {
         this.cloudUploadService = cloudUploadService;
         this.localStorageService = localStorageService;
         this.distributionService = distributionService;
+        this.verificationService = verificationService;
     }
 
     @Override
@@ -66,19 +70,30 @@ public class DistributionHandler extends MessageToMessageDecoder<ProtocolMessage
         LOGGER.debug("saved block {} on user {}", backupBlockSuccess.getId(), userId);
         this.distributionService.addLocationToBlock(backupBlockSuccess.getId(), userId);
         boolean enoughBackupLocationsExist = this.distributionService.hasEnoughVerifiedReplicas(backupBlockSuccess.getId());
+        LOGGER.trace("block {} has enough backup locations: {}", backupBlockSuccess.getId(), enoughBackupLocationsExist);
         if (enoughBackupLocationsExist) {
+            LOGGER.debug("delete block {} from cloud-upload", backupBlockSuccess.getId());
             this.cloudUploadService.removeCloudUploadByBlockMetaDataId(backupBlockSuccess.getId());
         }
     }
 
     private void processBackupBlockFailure(String userId, BackupBlockFailure backupBlockFailure) {
-        LOGGER.warn("unable to save backup block {} on user {}: failure was {}", backupBlockFailure.getId(), userId, backupBlockFailure.getType());
-        if (backupBlockFailure.getType() == BackupBlockFailure.BackupBlockFailureType.WRONG_MAC) {
+        LOGGER.debug("unable to save backup block {} on user {}: failure was {}", backupBlockFailure.getId(), userId, backupBlockFailure.getType());
+        if (backupBlockFailure.getType() == BackupBlockFailure.BackupBlockFailureType.WRONG_MAC) { // restart cloud upload
+            LOGGER.debug("removing block {} from cloud-storage", backupBlockFailure.getId());
             this.cloudUploadService.removeFromCloudStorageService(backupBlockFailure.getId());
-        } else if (backupBlockFailure.getType() == BackupBlockFailure.BackupBlockFailureType.USER_NOT_ALLOWED) {
+        } else if (backupBlockFailure.getType() == BackupBlockFailure.BackupBlockFailureType.USER_NOT_ALLOWED) { // log warning to change user settings
             LOGGER.warn("user {} does not allow storage of backups", userId);
+        } else if (backupBlockFailure.getType() == BackupBlockFailure.BackupBlockFailureType.BLOCK_NOT_FOUND && this.distributionService.hasEnoughVerifiedReplicas(backupBlockFailure.getId())) {
+            // if the block could not be saved and there are enough replicas delete all unverified locations
+            LOGGER.debug("delete datalocation {} from block {}", userId, backupBlockFailure.getId());
+            this.verificationService.deleteLocationFromBlock(backupBlockFailure.getId(), userId);
+        } else if (backupBlockFailure.getType() == BackupBlockFailure.BackupBlockFailureType.BLOCK_ALREADY_SAVED_WITH_OTHER_MAC) { // trigger verify in case the block differs from the saved one
+            LOGGER.debug("mark datalocation {} from block {} as unverified", userId, backupBlockFailure.getId());
+            this.verificationService.markLocationUnverified(backupBlockFailure.getId(), userId);
+        } else {
+            LOGGER.warn("unable to save backup block {} on user {}: failure was {}", backupBlockFailure.getId(), userId, backupBlockFailure.getType());
         }
-        // TODO react to saved block with wrong hash
     }
 
     private void processDeleteBlock(String userId, DeleteBlock deleteBlock) {

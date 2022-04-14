@@ -85,7 +85,7 @@ public class InitConfigurationBean {
                 if (cloudService.isPresent()) {
                     cloudService.get().configure(cloudProviderProperties.getProperties());
                 } else {
-                    LOGGER.warn("configured cloud-provier {} not found", cloudProviderProperties.getId());
+                    LOGGER.warn("configured cloud-provider {} not found", cloudProviderProperties.getId());
                 }
             }
         }

@@ -1,7 +1,6 @@
 package at.lucny.p2pbackup.core.repository;
 
 import at.lucny.p2pbackup.core.domain.BlockMetaData;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -54,6 +53,15 @@ public interface BlockMetaDataRepository extends JpaRepository<BlockMetaData, St
 
     List<BlockMetaData> findAllByIdLike(String bmdId, Pageable pageRequest);
 
-    @Query("SELECT bmd.id FROM BlockMetaData bmd")
-    Page<String> findAllIds(Pageable page);
+    @Query("SELECT COUNT(bmd) FROM BlockMetaData bmd " +
+            "WHERE (SELECT COUNT(location) FROM DataLocation location " +
+            "       WHERE location.blockMetaData = bmd AND location.verified >= :verificationInvalidDate " +
+            "      ) = :nrOfReplicas ")
+    long countNumberOfVerifiedReplicas(@Param("nrOfReplicas") long nrOfReplicas, @Param("verificationInvalidDate") LocalDateTime verificationInvalidDate);
+
+    @Query("SELECT COUNT(bmd) FROM BlockMetaData bmd " +
+            "WHERE (SELECT COUNT(location) FROM DataLocation location " +
+            "       WHERE location.blockMetaData = bmd " +
+            "      ) = :nrOfReplicas ")
+    long countNumberOfReplicas(@Param("nrOfReplicas") long nrOfReplicas);
 }

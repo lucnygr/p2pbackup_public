@@ -12,4 +12,7 @@ public class DatabaseProperties {
 
     @NotNull
     private Path databaseDir;
+
+    @NotNull
+    private Boolean encrypt = Boolean.TRUE;
 }
