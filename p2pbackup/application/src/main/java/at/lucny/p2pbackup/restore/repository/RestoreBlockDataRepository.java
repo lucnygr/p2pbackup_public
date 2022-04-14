@@ -19,9 +19,14 @@ public interface RestoreBlockDataRepository extends JpaRepository<RestoreBlockDa
             "WHERE l.userId IN :userIds AND rb.type in (:types)")
     Page<String> findIdsByUserIdsAndTypes(@Param("userIds") List<String> userIds, @Param("types") List<RestoreType> types, Pageable pageRequest);
 
+    @Query("SELECT DISTINCT rb.blockMetaData.id FROM RestoreBlockData rb " +
+            "INNER JOIN rb.blockMetaData bmd " +
+            "LEFT JOIN bmd.locations l " +
+            "WHERE l.userId IN :userIds " +
+            "OR bmd.locations IS EMPTY")
+    Page<String> findIdsByUserIdsOrNoLocations(@Param("userIds") List<String> userIds, Pageable pageRequest);
+
     Optional<RestoreBlockData> findByBlockMetaDataId(String id);
 
     long countByTypeIn(List<RestoreType> types);
-
-    void deleteByBlockMetaDataId(String id);
 }

@@ -5,7 +5,7 @@ import java.nio.ByteBuffer;
 
 public interface RestorationService {
 
-    void saveBlock(@NotNull String blockId, @NotNull ByteBuffer data);
-
     void restoreBlocks();
+
+    void restoreBlock(@NotNull String userId, @NotNull String blockId, @NotNull ByteBuffer data);
 }

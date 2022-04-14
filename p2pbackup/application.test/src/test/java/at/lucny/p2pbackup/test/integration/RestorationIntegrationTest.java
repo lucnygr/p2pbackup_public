@@ -1,7 +1,6 @@
 package at.lucny.p2pbackup.test.integration;
 
 import at.lucny.p2pbackup.backup.service.BackupService;
-import at.lucny.p2pbackup.core.domain.BlockMetaData;
 import at.lucny.p2pbackup.core.domain.PathVersion;
 import at.lucny.p2pbackup.core.domain.RootDirectory;
 import at.lucny.p2pbackup.core.repository.PathVersionRepository;
@@ -36,6 +35,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @ActiveProfiles({"integrationtest", "integrationtest_user1"})
@@ -113,7 +113,9 @@ class RestorationIntegrationTest extends BaseSingleApplicationIntegrationTest {
         new TransactionTemplate(this.txManager).executeWithoutResult(status -> {
             List<RestorePath> expectedRestorePaths = this.pathDataRepository.findAll().stream().map(pd -> {
                 PathVersion version = pd.getVersions().iterator().next();
-                return new RestorePath(version, getRestoreDir().resolve(pd.getPath()).toString());
+                RestorePath restorePath = new RestorePath(version, getRestoreDir().resolve(pd.getPath()).toString());
+                restorePath.getMissingBlocks().addAll(version.getBlocks().stream().map(b -> new RestoreBlockData(b, RestoreType.RESTORE)).toList());
+                return restorePath;
             }).sorted(Comparator.comparing(RestorePath::getPath)).toList();
 
             List<RestorePath> persistedRestorePaths = this.restorePathRepository.findAll().stream().sorted(Comparator.comparing(RestorePath::getPath)).toList();
@@ -122,21 +124,20 @@ class RestorationIntegrationTest extends BaseSingleApplicationIntegrationTest {
                 assertThat(persistedRestorePaths.get(i).getId()).isNotNull();
                 assertThat(persistedRestorePaths.get(i).getPath()).isEqualTo(expectedRestorePaths.get(i).getPath());
                 assertThat(persistedRestorePaths.get(i).getPathVersion().getId()).isEqualTo(expectedRestorePaths.get(i).getPathVersion().getId());
-                assertThat(persistedRestorePaths.get(i).getMissingBlocks()).isEmpty();
-
-                for (BlockMetaData bmd : persistedRestorePaths.get(i).getPathVersion().getBlocks()) {
-                    assertThat(this.restorationStorageService.loadFromLocalStorage(bmd.getId())).isPresent();
-                }
+                assertThat(persistedRestorePaths.get(i).getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaData().getId()).toList())
+                        .containsExactlyInAnyOrderElementsOf(expectedRestorePaths.get(i).getMissingBlocks().stream().map(rbd -> rbd.getBlockMetaData().getId()).toList());
             }
         });
 
-        this.restorationService.restoreBlocks();
+        //Files are in local storage so restore immediately
+        await().untilAsserted(() -> {
+            this.restorationService.restoreBlocks();
 
-        directory = createDirectory(getRestoreDir().resolve("subdir"));
-        Path restoreFile1Path = directory.resolve("testfile1.txt");
-        Path restoreFile2Path = getRestoreDir().resolve("testfile2.txt");
-        assertThat(restoreFile1Path).exists().hasSameBinaryContentAs(file1Path);
-        assertThat(restoreFile2Path).exists().hasSameBinaryContentAs(file2Path);
+            Path restoreFile1Path = createDirectory(getRestoreDir().resolve("subdir")).resolve("testfile1.txt");
+            Path restoreFile2Path = getRestoreDir().resolve("testfile2.txt");
+            assertThat(restoreFile1Path).exists().hasSameBinaryContentAs(file1Path);
+            assertThat(restoreFile2Path).exists().hasSameBinaryContentAs(file2Path);
+        });
     }
 
     @Test

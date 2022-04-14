@@ -79,7 +79,7 @@ class RecoveryTest extends BaseP2PTest {
         assertThat(this.ctxUser1.getBean(BlockMetaDataRepository.class).count()).isZero();
 
         RecoveryService recoveryService1 = this.ctxUser1.getBean(RecoveryService.class);
-        recoveryService1.recoverBackupIndex();
+        recoveryService1.requestBackupIndex();
 
         RecoverBackupIndexRepository recoverBackupIndexRepository1 = this.ctxUser1.getBean(RecoverBackupIndexRepository.class);
 

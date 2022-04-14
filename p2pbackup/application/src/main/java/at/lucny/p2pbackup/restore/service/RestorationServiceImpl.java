@@ -18,6 +18,8 @@ import at.lucny.p2pbackup.restore.domain.RestorePath;
 import at.lucny.p2pbackup.restore.domain.RestoreType;
 import at.lucny.p2pbackup.restore.repository.RestoreBlockDataRepository;
 import at.lucny.p2pbackup.restore.repository.RestorePathRepository;
+import at.lucny.p2pbackup.restore.service.worker.RestoreBlockWorker;
+import at.lucny.p2pbackup.restore.service.worker.RestoreTaskWorker;
 import at.lucny.p2pbackup.user.domain.User;
 import com.google.common.collect.Lists;
 import org.apache.commons.configuration2.Configuration;
@@ -28,9 +30,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.CollectionUtils;
 import org.springframework.validation.annotation.Validated;
 
@@ -61,21 +61,24 @@ public class RestorationServiceImpl implements RestorationService {
 
     private final ClientService clientService;
 
-    private final PlatformTransactionManager txManager;
+    private final RestoreTaskWorker restoreTaskWorker;
 
     private final Configuration configuration;
 
+    private final RestoreBlockWorker restoreBlockWorker;
+
     private final FileUtils fileUtils = new FileUtils();
 
-    public RestorationServiceImpl(PathVersionRepository pathVersionRepository, RestorePathRepository restorePathRepository, RestoreBlockDataRepository restoreBlockDataRepository, RestorationStorageService restorationStorageService, BlockMetaDataRepository blockMetaDataRepository, @Lazy ClientService clientService, PlatformTransactionManager txManager, Configuration configuration) {
+    public RestorationServiceImpl(PathVersionRepository pathVersionRepository, RestorePathRepository restorePathRepository, RestoreBlockDataRepository restoreBlockDataRepository, RestorationStorageService restorationStorageService, BlockMetaDataRepository blockMetaDataRepository, @Lazy ClientService clientService, RestoreTaskWorker restoreTaskWorker, Configuration configuration, RestoreBlockWorker restoreBlockWorker) {
         this.pathVersionRepository = pathVersionRepository;
         this.restorePathRepository = restorePathRepository;
         this.restoreBlockDataRepository = restoreBlockDataRepository;
         this.restorationStorageService = restorationStorageService;
         this.blockMetaDataRepository = blockMetaDataRepository;
         this.clientService = clientService;
-        this.txManager = txManager;
+        this.restoreTaskWorker = restoreTaskWorker;
         this.configuration = configuration;
+        this.restoreBlockWorker = restoreBlockWorker;
     }
 
     @Override
@@ -125,6 +128,8 @@ public class RestorationServiceImpl implements RestorationService {
         }
 
         this.restoreFilesWithoutMissingBlocks();
+
+        this.requestFromLocalStorage();
 
         this.requestBlocks(types);
 
@@ -181,12 +186,7 @@ public class RestorationServiceImpl implements RestorationService {
 
         // if blocks are missing in the local store skip the restore for this file - the fetching of data should be done automatically afterwards
         if (!missingBlocks.isEmpty()) {
-            new TransactionTemplate(this.txManager).executeWithoutResult(status -> {
-                for (BlockMetaData missingBlock : missingBlocks) {
-                    restorePath.getMissingBlocks().add(this.restoreBlockDataRepository.save(new RestoreBlockData(missingBlock, RestoreType.RESTORE)));
-                }
-                this.restorePathRepository.save(restorePath);
-            });
+            this.restoreTaskWorker.addRestoreTasksForMissingBlocks(restorePath, missingBlocks);
             return false;
         } else {
             return this.restoreFileFromBlocks(restorePath, blockPaths);
@@ -221,6 +221,30 @@ public class RestorationServiceImpl implements RestorationService {
         return true;
     }
 
+    private void requestFromLocalStorage() {
+        List<String> offlineUsers = this.clientService.getClients().stream().filter(NettyClient::isDisconnected).map(NettyClient::getUser).map(User::getId).toList();
+
+        long nrOfRestoredBlocks = 0;
+        List<String> restoreBlockIds = this.restoreBlockDataRepository.findIdsByUserIdsOrNoLocations(offlineUsers, PageRequest.of(0, 1000)).getContent();
+        List<List<String>> partitionedRestoreBlockIds = Lists.partition(restoreBlockIds, 100);
+        for (List<String> blockIdsToRestore : partitionedRestoreBlockIds) {
+            List<BlockMetaData> blocksToRestore = this.blockMetaDataRepository.findByIdsFetchLocations(blockIdsToRestore);
+            for (BlockMetaData block : blocksToRestore) {
+                if (this.restoreBlockWorker.restoreBlockFromLocalStorage(block.getId())) {
+                    nrOfRestoredBlocks++;
+                }
+
+                if (nrOfRestoredBlocks % 100 == 0) {
+                    LOGGER.info("restored {} blocks from local-storage", nrOfRestoredBlocks);
+                }
+            }
+        }
+
+        if (nrOfRestoredBlocks > 0) {
+            LOGGER.info("restored {} blocks total from local-storage", nrOfRestoredBlocks);
+        }
+    }
+
     private void requestBlocks(List<RestoreType> types) {
         List<String> onlineUsers = this.clientService.getOnlineClients().stream().map(NettyClient::getUser).map(User::getId).toList();
         if (CollectionUtils.isEmpty(onlineUsers)) {
@@ -233,7 +257,7 @@ public class RestorationServiceImpl implements RestorationService {
         for (List<String> blockIdsToRestore : partitionedRestoreBlockIds) {
             List<BlockMetaData> blocksToRestore = this.blockMetaDataRepository.findByIdsFetchLocations(blockIdsToRestore);
             for (BlockMetaData block : blocksToRestore) {
-                this.restoreBlock(block);
+                this.requestBlock(block);
 
                 nrOfRequestedBlocks++;
                 if (nrOfRequestedBlocks % 100 == 0) {
@@ -247,21 +271,17 @@ public class RestorationServiceImpl implements RestorationService {
         }
     }
 
-    private void restoreBlock(BlockMetaData block) {
+    @Override
+    @Transactional
+    public void restoreBlock(String userId, String blockId, ByteBuffer data) {
+        this.restoreBlockWorker.restoreBlock(userId, blockId, data);
+    }
+
+    private void requestBlock(BlockMetaData block) {
         String blockId = block.getId();
 
         if (this.restorationStorageService.loadFromLocalStorage(blockId).isPresent()) {
-            new TransactionTemplate(this.txManager).executeWithoutResult(status -> {
-                // cleanup restoreBlockData if needed
-                Optional<RestoreBlockData> restoreBlockDataOptional = this.restoreBlockDataRepository.findByBlockMetaDataId(block.getId());
-                if (restoreBlockDataOptional.isPresent()) {
-                    List<RestorePath> restorePaths = this.restorePathRepository.findByRestoreBlockData(restoreBlockDataOptional.get());
-                    for (RestorePath path : restorePaths) {
-                        path.getMissingBlocks().removeIf(b -> b.getBlockMetaData().getId().equals(block.getId()));
-                    }
-                    this.restoreBlockDataRepository.delete(restoreBlockDataOptional.get());
-                }
-            });
+            this.restoreBlockWorker.deleteRestoreBlockData(blockId);
         } else {
             Optional<NettyClient> clientOptional = this.getUserForRestore(block);
             if (clientOptional.isPresent()) {
@@ -296,30 +316,5 @@ public class RestorationServiceImpl implements RestorationService {
 
         // return needed amount of clients for replication
         return Optional.of(usersToRestoreFrom.get(0));
-    }
-
-    @Override
-    @Transactional
-    public void saveBlock(String blockId, ByteBuffer data) {
-        LOGGER.trace("begin saveBlock(blockId={}, data={} remaining", blockId, data.remaining());
-
-        // cleanup restoreBlockData if needed
-        BlockMetaData bmd = this.blockMetaDataRepository.getById(blockId);
-        Optional<RestoreBlockData> restoreBlockDataOptional = this.restoreBlockDataRepository.findByBlockMetaDataId(blockId);
-        if (restoreBlockDataOptional.isPresent()) {
-            RestoreBlockData restoreBlockData = restoreBlockDataOptional.get();
-            LOGGER.debug("block {} has restoration-type {}", blockId, restoreBlockData.getType());
-            if (restoreBlockData.getType() == RestoreType.RECOVER_META_DATA_AND_RESTORE_DATA || restoreBlockData.getType() == RestoreType.RESTORE) {
-                LOGGER.debug("save block {} in restoration-storage", blockId);
-                this.restorationStorageService.saveInLocalStorage(blockId, data.duplicate());
-                List<RestorePath> restorePaths = this.restorePathRepository.findByRestoreBlockData(restoreBlockData);
-                for (RestorePath path : restorePaths) {
-                    path.getMissingBlocks().removeIf(b -> b.getBlockMetaData().getId().equals(bmd.getId()));
-                }
-            }
-            this.restoreBlockDataRepository.delete(restoreBlockData);
-        }
-
-        LOGGER.trace("end saveBlock(blockId={}, data={} remaining", blockId, data.remaining());
     }
 }

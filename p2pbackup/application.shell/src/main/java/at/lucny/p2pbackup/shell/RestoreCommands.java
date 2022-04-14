@@ -5,6 +5,7 @@ import at.lucny.p2pbackup.backup.service.BackupService;
 import at.lucny.p2pbackup.core.domain.RootDirectory;
 import at.lucny.p2pbackup.restore.domain.RecoverBackupIndex;
 import at.lucny.p2pbackup.restore.service.RecoveryService;
+import at.lucny.p2pbackup.restore.service.RestoreCloudUploadService;
 import at.lucny.p2pbackup.restore.service.RestoreManagementService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,11 +34,14 @@ public class RestoreCommands {
 
     private final RestoreAgent restoreAgent;
 
-    public RestoreCommands(BackupService backupService, RestoreManagementService restoreManagementService, RecoveryService recoveryService, RestoreAgent restoreAgent) {
+    private final RestoreCloudUploadService restoreCloudUploadService;
+
+    public RestoreCommands(BackupService backupService, RestoreManagementService restoreManagementService, RecoveryService recoveryService, RestoreAgent restoreAgent, RestoreCloudUploadService restoreCloudUploadService) {
         this.backupService = backupService;
         this.restoreManagementService = restoreManagementService;
         this.recoveryService = recoveryService;
         this.restoreAgent = restoreAgent;
+        this.restoreCloudUploadService = restoreCloudUploadService;
     }
 
     @ShellMethod("Restores the given directory to a specific directory for the current date")
@@ -61,7 +65,7 @@ public class RestoreCommands {
     }
 
     @ShellMethod("Restores the given directory to a specific directory for the given date")
-    public void restoreDirectoryAt(@NotNull String name, @NotNull String targetDirectory, @NotNull String date) {
+    public void restoreDirectoryAtDate(@NotNull String name, @NotNull String targetDirectory, @NotNull String date) {
         Optional<RootDirectory> optionalRootDirectory = this.backupService.getRootDirectory(name);
 
         Path directory = Paths.get(targetDirectory);
@@ -82,9 +86,14 @@ public class RestoreCommands {
         LOGGER.info("started restore for directory {}", targetDirectory);
     }
 
-    @ShellMethod("Starts the recovery of the backup-index")
-    public void recoverIndex() {
-        this.recoveryService.recoverBackupIndex();
+    @ShellMethod("Starts the recovery of the backup-index and metadata of other users")
+    public void recoverFromOtherUsers() {
+        this.recoveryService.requestBackupIndex();
+    }
+
+    @ShellMethod("Starts the recovery from the cloud-storage")
+    public void recoverFromCloudStorage() {
+        this.restoreCloudUploadService.recoverFromCloudStorages();
     }
 
     @ShellMethod("Shows all recovered backup indizes")
