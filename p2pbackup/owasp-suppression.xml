@@ -116,5 +116,28 @@
         <cve>CVE-2021-41233</cve>
     </suppress>
 
+    <!-- spring shell is not the spring-framework -->
+    <suppress>
+        <notes><![CDATA[
+   file name: spring-shell-core-2.0.1.RELEASE.jar
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.shell/spring\-shell\-core@.*$</packageUrl>
+        <cve>CVE-2013-4152</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: spring-shell-core-2.0.1.RELEASE.jar
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.shell/spring\-shell\-core@.*$</packageUrl>
+        <cve>CVE-2013-7315</cve>
+    </suppress>
+    <suppress>
+        <notes><![CDATA[
+   file name: spring-shell-core-2.0.1.RELEASE.jar
+   ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.springframework\.shell/spring\-shell\-core@.*$</packageUrl>
+        <cve>CVE-2014-0054</cve>
+    </suppress>
+
 
 </suppressions>

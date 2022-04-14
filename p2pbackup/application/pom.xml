@@ -54,19 +54,6 @@
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>org.springframework.retry</groupId>
-            <artifactId>spring-retry</artifactId>
-        </dependency>
-
-        <!-- spring shell for user interaction -->
-        <!--
-        <dependency>
-            <groupId>org.springframework.shell</groupId>
-            <artifactId>spring-shell-starter</artifactId>
-        </dependency>
-        -->
-
         <!-- __________________________________________________________________________ -->
         <!-- Netty classes for network communication -->
         <dependency>
