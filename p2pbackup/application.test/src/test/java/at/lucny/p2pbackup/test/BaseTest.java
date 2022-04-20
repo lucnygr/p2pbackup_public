@@ -1,6 +1,5 @@
 package at.lucny.p2pbackup.test;
 
-import at.lucny.p2pbackup.backup.service.FixedSizeChunkerServiceImpl;
 import at.lucny.p2pbackup.backup.support.BackupUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.BeforeAll;
@@ -12,6 +11,8 @@ import java.nio.file.Path;
 import java.security.Security;
 import java.util.ArrayList;
 import java.util.List;
+
+import static at.lucny.p2pbackup.backup.support.BackupConstants.ONE_KILOBYTE;
 
 public abstract class BaseTest {
 
@@ -32,7 +33,7 @@ public abstract class BaseTest {
     public static List<byte[]> generateBytesInBlocks(int nrOfBlocks) throws IOException {
         List<byte[]> content = new ArrayList<>();
         for (int i = 0; i < nrOfBlocks; i++) {
-            byte[] bytes = new byte[FixedSizeChunkerServiceImpl.BLOCK_SIZE];
+            byte[] bytes = new byte[ONE_KILOBYTE * 500];
             BackupUtils.RANDOM.nextBytes(bytes);
             content.add(bytes);
         }

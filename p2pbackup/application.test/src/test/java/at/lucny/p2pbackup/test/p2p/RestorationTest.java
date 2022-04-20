@@ -1,9 +1,9 @@
 package at.lucny.p2pbackup.test.p2p;
 
+import at.lucny.p2pbackup.application.config.P2PBackupProperties;
 import at.lucny.p2pbackup.application.service.BackupAgent;
 import at.lucny.p2pbackup.application.service.CloudUploadAgent;
 import at.lucny.p2pbackup.application.service.DistributionAgent;
-import at.lucny.p2pbackup.backup.service.FixedSizeChunkerServiceImpl;
 import at.lucny.p2pbackup.core.domain.RootDirectory;
 import at.lucny.p2pbackup.core.repository.BlockMetaDataRepository;
 import at.lucny.p2pbackup.core.repository.CloudUploadRepository;
@@ -46,7 +46,7 @@ class RestorationTest extends BaseP2PTest {
         Path bigFile = createDirectory(getDataDir("user1").resolve("subdir")).resolve("testfile_big.txt");
         Files.write(bigFile, contentOfBigFile, StandardOpenOption.CREATE);
 
-        int nrOfBlocks = 6 + 1 + contentOfBigFile.length / (FixedSizeChunkerServiceImpl.BLOCK_SIZE) + 1;
+        int nrOfBlocks = 6 + 1 + contentOfBigFile.length / ((int) this.ctxUser1.getBean(P2PBackupProperties.class).getBlockSize().toBytes()) + 1;
         ctxUser1.getBean(BackupAgent.class).backup();
         await().untilAsserted(() -> assertThat(ctxUser1.getBean(BlockMetaDataRepository.class).count()).isEqualTo(nrOfBlocks));
         await().untilAsserted(() -> {

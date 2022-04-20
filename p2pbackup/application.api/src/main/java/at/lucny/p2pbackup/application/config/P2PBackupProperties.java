@@ -5,6 +5,7 @@ import lombok.ToString;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
+import org.springframework.util.unit.DataSize;
 
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
@@ -47,4 +48,7 @@ public class P2PBackupProperties {
     @NotNull
     @Min(2)
     private Integer minimalReplicas = 3;
+
+    @NotNull
+    private DataSize blockSize = DataSize.ofKilobytes(500);
 }

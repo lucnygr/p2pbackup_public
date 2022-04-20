@@ -33,7 +33,7 @@ public class MACCheckingDataSource extends DelegatingDataSource implements Close
 
     public MACCheckingDataSource(P2PBackupProperties p2PBackupProperties, CryptoService cryptoService) throws IOException {
         this.p2PBackupProperties = p2PBackupProperties;
-        this.macKey = cryptoService.getSecretKeyGenerator().generate(SALT_KDF_DATABASE_MAC);
+        this.macKey = cryptoService.getSecretKeyGenerator().generate(SALT_KDF_DATABASE_MAC, 128);
 
         Path databaseMacPath = this.p2PBackupProperties.getConfigDir().resolve(FILE_DB_MAC);
         LOGGER.info("checking MAC of database {}", databaseMacPath);

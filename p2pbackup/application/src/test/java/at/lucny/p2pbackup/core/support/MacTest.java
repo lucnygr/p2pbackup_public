@@ -11,11 +11,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.SecureRandom;
 
-import static at.lucny.p2pbackup.backup.service.FixedSizeChunkerServiceImpl.BLOCK_SIZE;
+import static at.lucny.p2pbackup.backup.support.BackupConstants.ONE_KILOBYTE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(MockitoExtension.class)
 class MacTest {
+
+    private static final int BLOCK_SIZE = 500 * ONE_KILOBYTE;
 
     private SecureRandom random = new SecureRandom();
 
