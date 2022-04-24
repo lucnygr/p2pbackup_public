@@ -190,6 +190,7 @@ class VerificationValueServiceImplUnitTest {
         Optional<ActiveVerificationValue> result = this.verificationService.getOrRenewActiveVerificationValue("ID");
         assertThat(result).isNotNull().isNotPresent();
 
+        verify(this.activeVerificationValueRepository).flush();
         verify(this.activeVerificationValueRepository).deleteAllInBatch(List.of(verificationValue));
         verifyNoMoreInteractions(this.verificationValueRepositoryMock, this.activeVerificationValueRepository);
     }
