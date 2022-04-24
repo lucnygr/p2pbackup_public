@@ -7,7 +7,7 @@
     <groupId>at.lucny.p2pbackup</groupId>
     <artifactId>p2pbackup</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.1</version>
+    <version>1.0.2-SNAPSHOT</version>
 
     <modules>
         <module>application.api</module>
