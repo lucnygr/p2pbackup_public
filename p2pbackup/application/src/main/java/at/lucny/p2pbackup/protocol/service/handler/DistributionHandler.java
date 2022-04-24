@@ -81,9 +81,11 @@ public class DistributionHandler extends MessageToMessageDecoder<ProtocolMessage
         LOGGER.debug("unable to save backup block {} on user {}: failure was {}", backupBlockFailure.getId(), userId, backupBlockFailure.getType());
         if (backupBlockFailure.getType() == BackupBlockFailure.BackupBlockFailureType.WRONG_MAC) { // restart cloud upload
             LOGGER.debug("removing block {} from cloud-storage", backupBlockFailure.getId());
+            this.verificationService.deleteLocationFromBlock(backupBlockFailure.getId(), userId);
             this.cloudUploadService.removeFromCloudStorageService(backupBlockFailure.getId());
         } else if (backupBlockFailure.getType() == BackupBlockFailure.BackupBlockFailureType.USER_NOT_ALLOWED) { // log warning to change user settings
             LOGGER.warn("user {} does not allow storage of backups", userId);
+            this.verificationService.deleteLocationFromBlock(backupBlockFailure.getId(), userId);
         } else if (backupBlockFailure.getType() == BackupBlockFailure.BackupBlockFailureType.BLOCK_NOT_FOUND && this.distributionService.hasEnoughVerifiedReplicas(backupBlockFailure.getId())) {
             // if the block could not be saved and there are enough replicas delete all unverified locations
             LOGGER.debug("delete datalocation {} from block {}", userId, backupBlockFailure.getId());
