@@ -1,9 +1,9 @@
 package at.lucny.p2pbackup.user.service;
 
 import at.lucny.p2pbackup.user.domain.User;
+import jakarta.validation.Valid;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.nio.file.Path;
 import java.util.Optional;
 

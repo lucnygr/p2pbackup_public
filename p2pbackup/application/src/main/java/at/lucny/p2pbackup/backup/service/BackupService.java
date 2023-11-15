@@ -2,7 +2,7 @@ package at.lucny.p2pbackup.backup.service;
 
 import at.lucny.p2pbackup.core.domain.RootDirectory;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;

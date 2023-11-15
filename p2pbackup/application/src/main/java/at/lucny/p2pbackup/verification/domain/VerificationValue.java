@@ -3,8 +3,8 @@ package at.lucny.p2pbackup.verification.domain;
 import at.lucny.p2pbackup.core.domain.BlockMetaData;
 import lombok.*;
 
-import javax.persistence.Entity;
-import javax.persistence.Table;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "VERIFICATION_VALUE")

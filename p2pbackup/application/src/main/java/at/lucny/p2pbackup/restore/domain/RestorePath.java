@@ -4,7 +4,7 @@ import at.lucny.p2pbackup.core.domain.AbstractEntity;
 import at.lucny.p2pbackup.core.domain.PathVersion;
 import lombok.*;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.util.HashSet;
 import java.util.Set;
 

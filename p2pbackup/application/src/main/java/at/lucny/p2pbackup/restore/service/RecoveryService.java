@@ -2,7 +2,7 @@ package at.lucny.p2pbackup.restore.service;
 
 import at.lucny.p2pbackup.restore.domain.RecoverBackupIndex;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Set;

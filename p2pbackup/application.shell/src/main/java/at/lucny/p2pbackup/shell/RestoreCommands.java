@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;

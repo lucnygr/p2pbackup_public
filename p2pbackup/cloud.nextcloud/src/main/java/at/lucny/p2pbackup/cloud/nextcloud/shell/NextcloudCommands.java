@@ -6,7 +6,7 @@ import org.springframework.shell.SpringShellAutoConfiguration;
 import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 @ConditionalOnBean(SpringShellAutoConfiguration.class)
 @ShellComponent

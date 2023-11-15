@@ -2,7 +2,7 @@ package at.lucny.p2pbackup.verification.service;
 
 import at.lucny.p2pbackup.application.config.VerificationProperties;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 public interface VerificationService {
 

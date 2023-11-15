@@ -6,13 +6,13 @@ import at.lucny.p2pbackup.cloud.CloudStorageServiceProvider;
 import at.lucny.p2pbackup.configuration.support.ConfigurationConstants;
 import at.lucny.p2pbackup.localstorage.service.LocalStorageService;
 import at.lucny.p2pbackup.user.service.UserService;
+import jakarta.annotation.PostConstruct;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.configuration2.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Optional;

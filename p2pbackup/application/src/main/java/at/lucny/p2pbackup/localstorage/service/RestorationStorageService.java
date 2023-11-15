@@ -1,6 +1,6 @@
 package at.lucny.p2pbackup.localstorage.service;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.Optional;

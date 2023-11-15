@@ -1,6 +1,6 @@
 package at.lucny.p2pbackup.restore.service;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.nio.ByteBuffer;
 
 public interface RestorationService {

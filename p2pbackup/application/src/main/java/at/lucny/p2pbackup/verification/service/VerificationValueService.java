@@ -3,7 +3,7 @@ package at.lucny.p2pbackup.verification.service;
 import at.lucny.p2pbackup.verification.domain.ActiveVerificationValue;
 import at.lucny.p2pbackup.verification.domain.VerificationValue;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.Optional;

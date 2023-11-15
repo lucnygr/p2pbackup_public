@@ -27,7 +27,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.6.6</version>
+        <version>3.0.12</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
@@ -38,7 +38,7 @@
         <version.bouncycastle>1.69</version.bouncycastle>
         <version.protobuf>3.19.3</version.protobuf>
         <version.spring.shell>2.0.1.RELEASE</version.spring.shell>
-        <version.liquibase>4.9.1</version.liquibase>
+        <version.liquibase>4.17.2</version.liquibase>
         <version.google.client>1.32.1</version.google.client>
         <version.google.drive>v3-rev20211107-1.32.1</version.google.drive>
 

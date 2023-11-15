@@ -2,8 +2,8 @@ package at.lucny.p2pbackup.user.domain;
 
 import lombok.*;
 
-import javax.persistence.Column;
-import javax.persistence.Embeddable;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
 
 /**
  * A network-address where a user is reachable via the ip-protocol.

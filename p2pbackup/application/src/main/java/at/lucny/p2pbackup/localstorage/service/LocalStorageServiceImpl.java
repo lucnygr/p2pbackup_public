@@ -20,7 +20,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.FileSystemUtils;
 import org.springframework.validation.annotation.Validated;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import javax.crypto.Mac;
 import java.io.FileNotFoundException;
 import java.io.IOException;

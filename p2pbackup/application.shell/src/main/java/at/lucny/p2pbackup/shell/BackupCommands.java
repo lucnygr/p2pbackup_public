@@ -4,7 +4,7 @@ import at.lucny.p2pbackup.backup.service.BackupService;
 import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 @ShellComponent
 public class BackupCommands {

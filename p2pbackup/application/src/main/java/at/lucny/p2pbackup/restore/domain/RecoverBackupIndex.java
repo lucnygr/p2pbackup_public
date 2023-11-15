@@ -3,7 +3,7 @@ package at.lucny.p2pbackup.restore.domain;
 import at.lucny.p2pbackup.core.domain.AbstractEntity;
 import lombok.*;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Set;
 

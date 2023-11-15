@@ -10,8 +10,8 @@ import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.util.TestSocketUtils;
 import org.springframework.util.ResourceUtils;
-import org.springframework.util.SocketUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -158,7 +158,7 @@ abstract class BaseP2PTest extends BaseTest {
     }
 
     protected ConfigurableApplicationContext createApplication(String user) {
-        this.userToPort.put(user, SocketUtils.findAvailableTcpPort());
+        this.userToPort.put(user, TestSocketUtils.findAvailableTcpPort());
 
         SpringApplicationBuilder builder = new SpringApplicationBuilder(TestP2PBackupApplication.class);
         Map<String, Object> properties = new HashMap<>();

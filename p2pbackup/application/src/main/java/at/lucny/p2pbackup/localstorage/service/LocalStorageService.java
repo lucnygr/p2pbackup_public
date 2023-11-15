@@ -4,8 +4,8 @@ import at.lucny.p2pbackup.localstorage.dto.LocalStorageEntry;
 import at.lucny.p2pbackup.network.dto.BackupBlock;
 import at.lucny.p2pbackup.network.dto.BackupBlockFailure;
 
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;

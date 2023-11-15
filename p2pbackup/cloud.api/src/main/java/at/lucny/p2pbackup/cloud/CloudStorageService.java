@@ -1,6 +1,6 @@
 package at.lucny.p2pbackup.cloud;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;

@@ -2,7 +2,7 @@ package at.lucny.p2pbackup.backup.service;
 
 import at.lucny.p2pbackup.backup.dto.Block;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.nio.file.Path;
 import java.util.Iterator;
 

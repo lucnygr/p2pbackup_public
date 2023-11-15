@@ -4,7 +4,7 @@ import at.lucny.p2pbackup.core.domain.AbstractEntity;
 import at.lucny.p2pbackup.core.domain.BlockMetaData;
 import lombok.*;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "RESTORE_BLOCK_DATA")
