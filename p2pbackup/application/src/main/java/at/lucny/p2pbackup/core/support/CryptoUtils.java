@@ -1,5 +1,6 @@
 package at.lucny.p2pbackup.core.support;
 
+import at.lucny.p2pbackup.core.dto.AuthenticationKeys;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.Extension;
@@ -223,6 +224,24 @@ public class CryptoUtils {
             throw new KeyStoreException("could not create KeyManagerFactory from keystore", e);
         }
 
+    }
+
+    public AuthenticationKeys generateAuthenticationKeys(String user, char[] password, Path pathToKeystore, Path certificatePath) throws IOException {
+        LOGGER.trace("begin generateAuthenticationKeys(password=****)");
+
+        LOGGER.debug("generating authentication-keys for alias {}", user);
+        KeyPair rootKeyPair = this.generateKeyPair();
+        LOGGER.debug("generating certificate for alias {}", user);
+        X509Certificate rootPublicKeyCertificate = this.createCACertificate(rootKeyPair, user);
+
+        LOGGER.debug("writing authentication-keys to {}", pathToKeystore);
+        this.writeKeyStore(rootKeyPair, rootPublicKeyCertificate,user, pathToKeystore, password);
+
+        LOGGER.info("writing certificate to {}", certificatePath);
+        new CertificateUtils().writeCertificate(rootPublicKeyCertificate, certificatePath);
+
+        LOGGER.trace("end generateAuthenticationKeys");
+        return new AuthenticationKeys(rootKeyPair, rootPublicKeyCertificate);
     }
 
 }

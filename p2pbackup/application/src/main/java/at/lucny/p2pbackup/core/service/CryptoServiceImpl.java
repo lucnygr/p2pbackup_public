@@ -45,7 +45,7 @@ public class CryptoServiceImpl implements CryptoService {
 
     private final KeyManagerFactory tlsKeyManagerFactory;
 
-    public CryptoServiceImpl(P2PBackupProperties p2PBackupProperties, CryptoUtils cryptoUtils, @Lazy UserRepository userRepository, @Value("${at.lucny.p2p-backup.password:}") String givenPassword) throws IOException, KeyStoreException, CertificateEncodingException {
+    public CryptoServiceImpl(P2PBackupProperties p2PBackupProperties, CryptoUtils cryptoUtils, @Lazy UserRepository userRepository, @Value("${at.lucny.p2p-backup.password:#{null}}") String givenPassword) throws IOException, KeyStoreException, CertificateEncodingException {
         LOGGER.info("creating crypto-service");
         this.p2PBackupProperties = p2PBackupProperties;
         this.userRepository = userRepository;
@@ -58,7 +58,7 @@ public class CryptoServiceImpl implements CryptoService {
             authenticationKeys = this.loadAuthenticationKeys(this.p2PBackupProperties.getKeystore().getFile().toPath(), password);
         } else {
             LOGGER.info("keystore {} does not exist, try to generate authentication-keys", this.p2PBackupProperties.getKeystore());
-            authenticationKeys = this.generateAuthenticationKeys(password);
+            authenticationKeys = this.cryptoUtils.generateAuthenticationKeys(this.p2PBackupProperties.getUser(), password, this.p2PBackupProperties.getKeystore().getFile().toPath(), this.p2PBackupProperties.getCertificate().getFile().toPath());
         }
         Arrays.fill(password, '0');
 
@@ -108,25 +108,6 @@ public class CryptoServiceImpl implements CryptoService {
             password = new UserInputHelper().read(String.format("Please input the password for your private key %s:", path)).toCharArray();
         }
         return password;
-    }
-
-    private AuthenticationKeys generateAuthenticationKeys(char[] password) throws IOException {
-        LOGGER.trace("begin generateAuthenticationKeys(password=****)");
-
-        LOGGER.debug("generating authentication-keys for alias {}", this.p2PBackupProperties.getUser());
-        KeyPair rootKeyPair = this.cryptoUtils.generateKeyPair();
-        LOGGER.debug("generating certificate for alias {}", this.p2PBackupProperties.getUser());
-        X509Certificate rootPublicKeyCertificate = this.cryptoUtils.createCACertificate(rootKeyPair, this.p2PBackupProperties.getUser());
-
-        LOGGER.debug("writing authentication-keys to {}", this.p2PBackupProperties.getKeystore());
-        this.cryptoUtils.writeKeyStore(rootKeyPair, rootPublicKeyCertificate, this.p2PBackupProperties.getUser(), this.p2PBackupProperties.getKeystore().getFile().toPath(), password);
-
-        Path certificatePath = this.p2PBackupProperties.getCertificate().getFile().toPath();
-        LOGGER.info("writing certificate to {}", certificatePath);
-        this.certificateUtils.writeCertificate(rootPublicKeyCertificate, certificatePath);
-
-        LOGGER.trace("end generateAuthenticationKeys");
-        return new AuthenticationKeys(rootKeyPair, rootPublicKeyCertificate);
     }
 
     private AuthenticationKeys loadAuthenticationKeys(Path keystorePath, char[] password) throws IOException {

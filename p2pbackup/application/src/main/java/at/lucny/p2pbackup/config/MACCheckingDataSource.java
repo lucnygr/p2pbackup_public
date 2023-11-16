@@ -77,6 +77,7 @@ public class MACCheckingDataSource extends DelegatingDataSource implements Close
             try (DirectoryStream<Path> fileIndir = Files.newDirectoryStream(this.p2PBackupProperties.getDatabase().getDatabaseDir(), "hsqldb*")) {
                 List<byte[]> dbFiles = StreamSupport.stream(fileIndir.spliterator(), false).sorted()
                         .filter((Files::isRegularFile))
+                        .filter(p -> !p.toString().endsWith("lck")) // ignore the lock-file
                         .map(path -> {
                             try {
                                 byte[] bytes = Files.readAllBytes(path);
