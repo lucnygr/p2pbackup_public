@@ -1,10 +1,13 @@
 package at.lucny.p2pbackup.test.p2p;
 
+import at.lucny.p2pbackup.core.support.CryptoUtils;
 import at.lucny.p2pbackup.test.BaseTest;
 import at.lucny.p2pbackup.user.service.UserService;
+import com.google.common.collect.Lists;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.builder.SpringApplicationBuilder;
@@ -17,6 +20,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +39,17 @@ abstract class BaseP2PTest extends BaseTest {
     protected ConfigurableApplicationContext ctxUser3;
 
     private final Map<String, Integer> userToPort = new HashMap<>();
+
+    @BeforeEach
+    protected void beforeEachSetupKeystoresAndCertificates() throws NoSuchAlgorithmException, NoSuchProviderException, IOException {
+        for (String user : Lists.newArrayList("user1", "user2", "user3")) {
+            String keystorePassword = "password" + user;
+            Path pathToKeyStore = this.getConfigDir(user).resolve(user + ".pfx");
+            Path pathToCertificate = this.getConfigDir(user).resolve(user + ".pem");
+            // generate new keys for the user
+            new CryptoUtils().generateAuthenticationKeys(user, keystorePassword.toCharArray(), pathToKeyStore, pathToCertificate);
+        }
+    }
 
     protected void startContextForUser1() {
         this.ctxUser1 = this.createApplication("user1");
@@ -80,7 +96,7 @@ abstract class BaseP2PTest extends BaseTest {
     protected void addUser(ConfigurableApplicationContext ctx, String user, boolean allowBackupDataFromUser, boolean allowBackupDataToUser) {
         if (this.userToPort.containsKey(user)) {
             UserService userService = ctx.getBean(UserService.class);
-            userService.addUser(user, "localhost", this.userToPort.get(user), ResourceUtils.getFile("classpath:" + user + "/" + user + ".cer").toPath(), allowBackupDataFromUser, allowBackupDataToUser, false);
+            userService.addUser(user, "localhost", this.userToPort.get(user), this.getConfigDir(user).resolve(user + ".pem"), allowBackupDataFromUser, allowBackupDataToUser, false);
         }
     }
 
@@ -157,16 +173,20 @@ abstract class BaseP2PTest extends BaseTest {
         return createDirectory(tempDir.resolve(user).resolve("CLOUD"));
     }
 
+    @SneakyThrows
     protected ConfigurableApplicationContext createApplication(String user) {
         this.userToPort.put(user, TestSocketUtils.findAvailableTcpPort());
+
+        String keystorePassword = "password" + user;
+        String pathToKeyStore = "file:" + this.getConfigDir(user).resolve(user + ".pfx");
 
         SpringApplicationBuilder builder = new SpringApplicationBuilder(TestP2PBackupApplication.class);
         Map<String, Object> properties = new HashMap<>();
         properties.put("at.lucny.p2p-backup.user", user);
         properties.put("at.lucny.p2p-backup.minimal-replicas", 2);
         properties.put("at.lucny.p2p-backup.network.port", this.userToPort.get(user));
-        properties.put("at.lucny.p2p-backup.keystore", "classpath:" + user + "/" + user + ".pfx");
-        properties.put("at.lucny.p2p-backup.password", "password" + user);
+        properties.put("at.lucny.p2p-backup.keystore", pathToKeyStore);
+        properties.put("at.lucny.p2p-backup.password", keystorePassword);
         properties.put("at.lucny.p2p-backup.config-dir", this.getConfigDir(user).toString());
         properties.put("at.lucny.p2p-backup.storage-dir", this.getStorageDir(user).toString());
         properties.put("at.lucny.p2p-backup.init.root-directories.0.name", "datadir_" + user);
