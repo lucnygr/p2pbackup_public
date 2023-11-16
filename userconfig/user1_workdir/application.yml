@@ -1,0 +1,58 @@
+at:
+  lucny:
+    p2p-backup:
+      user: user1
+      config-dir: /home/gregor/Entwicklung/workspaces/p2pbackup_public/userconfig/${at.lucny.p2p-backup.user}_config
+      keystore: file:/home/gregor/Entwicklung/workspaces/p2pbackup_public/userconfig/keys/${at.lucny.p2p-backup.user}.pfx
+      certificate: file:/home/gregor/Entwicklung/workspaces/p2pbackup_public/userconfig/keys/${at.lucny.p2p-backup.user}.pem
+      network:
+        port: 9001
+      #verification:
+      #  duration-before-verification: 30d
+      #  duration-before-verification-invalid: 45d
+      #  duration-before-deletion: 180d
+      init:
+        users:
+          - user: user2
+            address: localhost
+            port: 9002
+            certificate-path: /home/gregor/Entwicklung/workspaces/p2pbackup_public/userconfig/keys/user2.pem
+            allow-backup-from-user: true
+            allow-backup-to-user: true
+          - user: user3
+            address: localhost
+            port: 9003
+            certificate-path: /home/gregor/Entwicklung/workspaces/p2pbackup_public/userconfig/keys/user3.pem
+            allow-backup-from-user: true
+            allow-backup-to-user: true
+          - user: user4
+            address: localhost
+            port: 9004
+            certificate-path: /home/gregor/Entwicklung/workspaces/p2pbackup_public/userconfig/keys/user4.pem
+            allow-backup-from-user: true
+            allow-backup-to-user: true
+        root-directories:
+          - name: userdata
+            path: ${at.lucny.p2p-backup.config-dir}/data
+        cloud-provider:
+          #  - id: at.lucny.p2pbackup.cloud.nextcloud.service.NextcloudStorageServiceImpl
+          #    properties:
+          #      service-url: https://nextcloud.lucny.at
+          #      #username: backup_user1
+          #      #password: df7fb20b4d98491f91e3dd8b06d064bc
+          #      username: backup_user2
+          #      password: b0ac0840e343657daa799c558155b6ad
+          - id: at.lucny.p2pbackup.cloud.filesystem.service.FilesystemStorageServiceImpl
+            properties:
+              directory: ${at.lucny.p2p-backup.config-dir}/cloud
+          #- id: at.lucny.p2pbackup.cloud.googledrive.service.GoogleDriveStorageServiceImpl
+          #  properties:
+          #    enabled: true
+
+#spring:
+#  datasource:
+#    url: jdbc:hsqldb:hsql://localhost:9876/user1
+
+logging:
+  level:
+    ROOT: INFO
