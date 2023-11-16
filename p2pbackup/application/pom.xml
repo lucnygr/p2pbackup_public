@@ -12,12 +12,6 @@
     <artifactId>application</artifactId>
 
     <dependencies>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-properties-migrator</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-
         <!-- __________________________________________________________________________ -->
         <!-- own project dependencies -->
         <dependency>
@@ -31,6 +25,13 @@
         <dependency>
             <groupId>at.lucny.p2pbackup</groupId>
             <artifactId>configuration.database</artifactId>
+            <!-- exclude to omit errors with spring-jcl -->
+            <exclusions>
+                <exclusion>
+                    <artifactId>commons-logging</artifactId>
+                    <groupId>commons-logging</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>at.lucny.p2pbackup</groupId>
@@ -76,16 +77,16 @@
         <!-- Boucnycastle needed for handling security aspects like certificate generation -->
         <dependency>
             <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk15on</artifactId>
+            <artifactId>bcprov-jdk18on</artifactId>
         </dependency>
 
         <dependency>
             <groupId>org.bouncycastle</groupId>
-            <artifactId>bcutil-jdk15on</artifactId>
+            <artifactId>bcutil-jdk18on</artifactId>
         </dependency>
         <dependency>
             <groupId>org.bouncycastle</groupId>
-            <artifactId>bcpkix-jdk15on</artifactId>
+            <artifactId>bcpkix-jdk18on</artifactId>
         </dependency>
 
         <!-- __________________________________________________________________________ -->

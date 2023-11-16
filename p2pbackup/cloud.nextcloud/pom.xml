@@ -42,7 +42,7 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.shell</groupId>
-            <artifactId>spring-shell-standard</artifactId>
+            <artifactId>spring-shell-autoconfigure</artifactId>
             <scope>provided</scope>
         </dependency>
     </dependencies>

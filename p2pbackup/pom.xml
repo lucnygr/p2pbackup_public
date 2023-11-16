@@ -27,20 +27,20 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.0.12</version>
+        <version>3.1.2</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
     <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.release>17</maven.compiler.release>
 
-        <version.bouncycastle>1.69</version.bouncycastle>
-        <version.protobuf>3.19.3</version.protobuf>
-        <version.spring.shell>2.0.1.RELEASE</version.spring.shell>
+        <version.bouncycastle>1.77</version.bouncycastle>
+        <version.protobuf>3.25.0</version.protobuf>
+        <version.spring.shell>3.1.5</version.spring.shell>
         <version.liquibase>4.17.2</version.liquibase>
         <version.google.client>1.32.1</version.google.client>
         <version.google.drive>v3-rev20211107-1.32.1</version.google.drive>
+        <version.nextcloud-api>12.0.2</version.nextcloud-api>
 
         <sonar.exclusions>**/BackupIntegrationTest.java</sonar.exclusions>
     </properties>
@@ -117,22 +117,27 @@
                 <artifactId>spring-shell-starter</artifactId>
                 <version>${version.spring.shell}</version>
             </dependency>
+            <dependency>
+                <groupId>org.springframework.shell</groupId>
+                <artifactId>spring-shell-autoconfigure</artifactId>
+                <version>${version.spring.shell}</version>
+            </dependency>
 
             <!-- __________________________________________________________________________ -->
             <!-- Bouncycastle -->
             <dependency>
                 <groupId>org.bouncycastle</groupId>
-                <artifactId>bcprov-jdk15on</artifactId>
+                <artifactId>bcprov-jdk18on</artifactId>
                 <version>${version.bouncycastle}</version>
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
-                <artifactId>bcutil-jdk15on</artifactId>
+                <artifactId>bcutil-jdk18on</artifactId>
                 <version>${version.bouncycastle}</version>
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
-                <artifactId>bcpkix-jdk15on</artifactId>
+                <artifactId>bcpkix-jdk18on</artifactId>
                 <version>${version.bouncycastle}</version>
             </dependency>
 
@@ -149,7 +154,7 @@
             <dependency>
                 <groupId>org.aarboard.nextcloud</groupId>
                 <artifactId>nextcloud-api</artifactId>
-                <version>12.0.2</version>
+                <version>${version.nextcloud-api}</version>
             </dependency>
 
             <!-- __________________________________________________________________________ -->
@@ -175,7 +180,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>31.0.1-jre</version>
+                <version>32.1.3-jre</version>
             </dependency>
 
             <!-- __________________________________________________________________________ -->
@@ -191,7 +196,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-configuration2</artifactId>
-                <version>2.7</version>
+                <version>2.9.0</version>
             </dependency>
             <!-- needed for commons-configurations -->
             <dependency>
@@ -205,7 +210,7 @@
             <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
-                <version>2.11.0</version>
+                <version>2.15.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

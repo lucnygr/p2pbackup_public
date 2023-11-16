@@ -2,7 +2,7 @@ package at.lucny.p2pbackup.cloud.nextcloud.shell;
 
 import at.lucny.p2pbackup.cloud.nextcloud.service.NextcloudStorageServiceImpl;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.shell.SpringShellAutoConfiguration;
+import org.springframework.shell.boot.SpringShellAutoConfiguration;
 import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
 
