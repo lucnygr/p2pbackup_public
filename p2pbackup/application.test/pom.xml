@@ -18,12 +18,21 @@
             <groupId>at.lucny.p2pbackup</groupId>
             <artifactId>application</artifactId>
         </dependency>
+        <dependency>
+            <groupId>at.lucny.p2pbackup</groupId>
+            <artifactId>cloud.nextcloud</artifactId>
+        </dependency>
 
         <!-- __________________________________________________________________________ -->
         <!-- Test dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

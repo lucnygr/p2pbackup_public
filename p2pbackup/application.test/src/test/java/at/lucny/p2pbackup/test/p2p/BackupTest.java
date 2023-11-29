@@ -4,7 +4,7 @@ import at.lucny.p2pbackup.application.config.P2PBackupProperties;
 import at.lucny.p2pbackup.application.service.BackupAgent;
 import at.lucny.p2pbackup.application.service.CloudUploadAgent;
 import at.lucny.p2pbackup.application.service.DistributionAgent;
-import at.lucny.p2pbackup.cloud.filesystem.service.FilesystemStorageServiceImpl;
+import at.lucny.p2pbackup.cloud.CloudStorageService;
 import at.lucny.p2pbackup.core.domain.BlockMetaData;
 import at.lucny.p2pbackup.core.domain.DataLocation;
 import at.lucny.p2pbackup.core.repository.BlockMetaDataRepository;
@@ -33,10 +33,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @ExtendWith(SpringExtension.class)
-class BackupTest extends BaseP2PTest {
+public class BackupTest extends BaseP2PTest {
 
     @Test
-    void testBackupToOtherPeers() throws IOException {
+    void testBackupToOtherPeers() {
         this.startContextForUser1();
         this.startContextForUser2();
         this.copyFileToUserDataDir("user1", "testfile1.txt");
@@ -83,7 +83,7 @@ class BackupTest extends BaseP2PTest {
         await().untilAsserted(() -> {
             assertThat(cloudUploadRepository1.count()).isZero();
             // the files from the cloud-storage should be deleted
-            assertThat(ctxUser1.getBean(FilesystemStorageServiceImpl.class).getFiles()).isEmpty();
+            assertThat(this.ctxUser1.getBeansOfType(CloudStorageService.class).values().stream().filter(CloudStorageService::isInitialized)).allSatisfy((bean) -> assertThat(bean.list()).isEmpty());
             // the files from the storage directory should be deleted
             assertThat(this.ctxUser1.getBean(LocalStorageServiceImpl.class).getFiles()).isEmpty();
         });
@@ -163,7 +163,7 @@ class BackupTest extends BaseP2PTest {
         await().untilAsserted(() -> {
             assertThat(cloudUploadRepository1.count()).isZero();
             // the files from the cloud-storage should be deleted
-            assertThat(ctxUser1.getBean(FilesystemStorageServiceImpl.class).getFiles()).isEmpty();
+            assertThat(this.ctxUser1.getBeansOfType(CloudStorageService.class).values().stream().filter(CloudStorageService::isInitialized)).allSatisfy((bean) -> assertThat(bean.list()).isEmpty());
             // the files from the storage directory should be deleted
             assertThat(this.ctxUser1.getBean(LocalStorageServiceImpl.class).getFiles()).isEmpty();
         });
@@ -178,9 +178,9 @@ class BackupTest extends BaseP2PTest {
     }
 
     @Test
-    void testBackupToPeer_user1DoesntAllowToBackupDataToUser2() throws IOException {
-        this.ctxUser1 = this.createApplication("user1");
-        this.ctxUser2 = this.createApplication("user2");
+    void testBackupToPeer_user1DoesntAllowToBackupDataToUser2() {
+        this.ctxUser1 = this.createApplication("user1", this.getProviderInformation("user1"));
+        this.ctxUser2 = this.createApplication("user2", this.getProviderInformation("user2"));
 
         this.addUser(this.ctxUser1, "user2", true, false);
         this.addUser(this.ctxUser2, "user1", true, true);
@@ -213,9 +213,9 @@ class BackupTest extends BaseP2PTest {
     }
 
     @Test
-    void testBackupToPeer_user1NotAllowedToBackupDataToUser2() throws IOException {
-        this.ctxUser1 = this.createApplication("user1");
-        this.ctxUser2 = this.createApplication("user2");
+    void testBackupToPeer_user1NotAllowedToBackupDataToUser2() {
+        this.ctxUser1 = this.createApplication("user1", this.getProviderInformation("user1"));
+        this.ctxUser2 = this.createApplication("user2", this.getProviderInformation("user2"));
 
         this.addUser(this.ctxUser1, "user2", true, true);
         this.addUser(this.ctxUser2, "user1", false, true);

@@ -52,7 +52,7 @@ abstract class BaseP2PTest extends BaseTest {
     }
 
     protected void startContextForUser1() {
-        this.ctxUser1 = this.createApplication("user1");
+        this.ctxUser1 = this.createApplication("user1", this.getProviderInformation("user1"));
 
         this.addUser(this.ctxUser1, "user2", true, true);
         this.addUser(this.ctxUser1, "user3", true, true);
@@ -65,7 +65,7 @@ abstract class BaseP2PTest extends BaseTest {
     }
 
     protected void startContextForUser2() {
-        this.ctxUser2 = this.createApplication("user2");
+        this.ctxUser2 = this.createApplication("user2", this.getProviderInformation("user2"));
 
         this.addUser(this.ctxUser2, "user1", true, true);
         this.addUser(this.ctxUser2, "user3", true, true);
@@ -79,7 +79,7 @@ abstract class BaseP2PTest extends BaseTest {
     }
 
     protected void startContextForUser3() {
-        this.ctxUser3 = this.createApplication("user3");
+        this.ctxUser3 = this.createApplication("user3", this.getProviderInformation("user3"));
 
         this.addUser(this.ctxUser3, "user1", true, true);
         this.addUser(this.ctxUser3, "user2", true, true);
@@ -174,7 +174,7 @@ abstract class BaseP2PTest extends BaseTest {
     }
 
     @SneakyThrows
-    protected ConfigurableApplicationContext createApplication(String user) {
+    protected ConfigurableApplicationContext createApplication(String user, Map<String, Object> cloudProviderProperties) {
         this.userToPort.put(user, TestSocketUtils.findAvailableTcpPort());
 
         String keystorePassword = "password" + user;
@@ -191,8 +191,7 @@ abstract class BaseP2PTest extends BaseTest {
         properties.put("at.lucny.p2p-backup.storage-dir", this.getStorageDir(user).toString());
         properties.put("at.lucny.p2p-backup.init.root-directories.0.name", "datadir_" + user);
         properties.put("at.lucny.p2p-backup.init.root-directories.0.path", this.getDataDir(user).toString());
-        properties.put("at.lucny.p2p-backup.init.cloud-provider.0.id", "at.lucny.p2pbackup.cloud.filesystem.service.FilesystemStorageServiceImpl");
-        properties.put("at.lucny.p2p-backup.init.cloud-provider.0.properties.directory", this.getCloudProviderDir(user).toString());
+        properties.putAll(cloudProviderProperties);
         properties.put("at.lucny.p2p-backup.init.disable-upload-agent", true);
         properties.put("at.lucny.p2p-backup.init.disable-distribution-agent", true);
         properties.put("at.lucny.p2p-backup.init.disable-restoration-agent", true);
@@ -201,4 +200,12 @@ abstract class BaseP2PTest extends BaseTest {
         List<String> arguments = properties.entrySet().stream().map(kv -> "--" + kv.getKey() + "=" + kv.getValue()).toList();
         return builder.run(arguments.toArray(new String[0]));
     }
+
+    protected Map<String, Object> getProviderInformation(String user) {
+        Map<String, Object> properties = new HashMap<>();
+        properties.put("at.lucny.p2p-backup.init.cloud-provider.0.id", "at.lucny.p2pbackup.cloud.filesystem.service.FilesystemStorageServiceImpl");
+        properties.put("at.lucny.p2p-backup.init.cloud-provider.0.properties.directory", this.getCloudProviderDir(user).toString());
+        return properties;
+    }
+
 }
