@@ -22,6 +22,7 @@
         <module>application.test</module>
         <module>cloud.impl</module>
         <module>application.shell</module>
+        <module>cloud.dropbox</module>
     </modules>
 
     <parent>
@@ -42,6 +43,7 @@
         <version.google.drive>v3-rev20211107-1.32.1</version.google.drive>
         <version.nextcloud-api>13.0.1</version.nextcloud-api>
         <version.testcontainers>1.19.2</version.testcontainers>
+        <version.dropbox>6.0.0</version.dropbox>
 
         <sonar.exclusions>**/BackupIntegrationTest.java</sonar.exclusions>
     </properties>
@@ -98,6 +100,11 @@
             <dependency>
                 <groupId>at.lucny.p2pbackup</groupId>
                 <artifactId>cloud.filesystem</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>at.lucny.p2pbackup</groupId>
+                <artifactId>cloud.dropbox</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -169,6 +176,14 @@
                 <groupId>com.google.apis</groupId>
                 <artifactId>google-api-services-drive</artifactId>
                 <version>${version.google.drive}</version>
+            </dependency>
+
+            <!-- __________________________________________________________________________ -->
+            <!-- Dropbox -->
+            <dependency>
+                <groupId>com.dropbox.core</groupId>
+                <artifactId>dropbox-core-sdk</artifactId>
+                <version>${version.dropbox}</version>
             </dependency>
 
             <!-- __________________________________________________________________________ -->

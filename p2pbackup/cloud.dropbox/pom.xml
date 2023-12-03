@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>at.lucny.p2pbackup</groupId>
+        <artifactId>p2pbackup</artifactId>
+        <version>1.0.2-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>cloud.dropbox</artifactId>
+
+    <properties>
+        <kotlin.version>1.9.21</kotlin.version>
+    </properties>
+
+    <dependencies>
+        <!-- __________________________________________________________________________ -->
+        <!-- Dependencies to own API-Modules -->
+        <dependency>
+            <groupId>at.lucny.p2pbackup</groupId>
+            <artifactId>cloud.api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>at.lucny.p2pbackup</groupId>
+            <artifactId>configuration.api</artifactId>
+        </dependency>
+
+        <!-- __________________________________________________________________________ -->
+        <!-- Dependencies for Dropbox -->
+        <dependency>
+            <groupId>com.dropbox.core</groupId>
+            <artifactId>dropbox-core-sdk</artifactId>
+        </dependency>
+
+        <!-- __________________________________________________________________________ -->
+        <!-- Dependencies for SLF4J -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+
+        <!-- __________________________________________________________________________ -->
+        <!-- Spring dependencies -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+        </dependency>
+
+        <!-- __________________________________________________________________________ -->
+        <!-- Dependencies for kotlin -->
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-stdlib</artifactId>
+            <version>${kotlin.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-test</artifactId>
+            <version>${kotlin.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
+        <testSourceDirectory>${project.basedir}/src/test/kotlin</testSourceDirectory>
+
+        <plugins>
+            <plugin>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-maven-plugin</artifactId>
+                <version>${kotlin.version}</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <jvmTarget>${maven.compiler.release}</jvmTarget>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
