@@ -3,7 +3,7 @@
     <option name="MAIN_CLASS_NAME" value="at.lucny.p2pbackup.P2PBackupKeyGenerator" />
     <module name="application.shell" />
     <option name="PROGRAM_PARAMETERS" value="user1 user1 ." />
-    <option name="WORKING_DIRECTORY" value="$ProjectFileDir$/userconfig" />
+    <option name="WORKING_DIRECTORY" value="$ProjectFileDir$/userconfig/keys" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="at.lucny.p2pbackup.*" />
