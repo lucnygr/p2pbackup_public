@@ -1,0 +1,45 @@
+at:
+  lucny:
+    p2p-backup:
+      user: user4
+      config-dir: ../${at.lucny.p2p-backup.user}_config
+      keystore: file:../keys/${at.lucny.p2p-backup.user}.pfx
+      certificate: file:../keys/${at.lucny.p2p-backup.user}.pem
+      network:
+        port: 9004
+      init:
+        users:
+          - user: user1
+            address: localhost
+            port: 9001
+            certificate-path: ../keys/user1.pem
+            allow-backup-from-user: true
+            allow-backup-to-user: true
+          - user: user2
+            address: localhost
+            port: 9002
+            certificate-path: ../keys/user2.pem
+            allow-backup-from-user: true
+            allow-backup-to-user: true
+          - user: user3
+            address: localhost
+            port: 9003
+            certificate-path: ../keys/user3.pem
+            allow-backup-from-user: true
+            allow-backup-to-user: true
+        root-directories:
+          - name: userdata
+            path: ${at.lucny.p2p-backup.config-dir}/data
+        cloud-provider:
+          #  - id: at.lucny.p2pbackup.cloud.nextcloud.service.NextcloudStorageServiceImpl
+          #    properties:
+          #      service-url: https://nextcloud.lucny.at
+          #      #username:
+          #      #password: 
+          - id: at.lucny.p2pbackup.cloud.filesystem.service.FilesystemStorageServiceImpl
+            properties:
+              directory: ${at.lucny.p2p-backup.config-dir}/cloud
+
+logging:
+  level:
+    ROOT: INFO
