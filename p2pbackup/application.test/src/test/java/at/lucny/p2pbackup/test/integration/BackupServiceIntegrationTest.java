@@ -16,7 +16,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
-@ActiveProfiles({"integrationtest", "integrationtest_user1"})
+@ActiveProfiles({"integrationtest"})
 @ContextConfiguration(initializers = BaseSingleApplicationIntegrationTest.ConfigDirContextInitializer.class)
 class BackupServiceIntegrationTest extends BaseSingleApplicationIntegrationTest {
 
