@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module version="4">
   <component name="SonarLintModuleSettings">
-    <option name="idePathPrefix" value="p2pbackup" />
-    <option name="uniqueId" value="a518bec7-53c5-42b9-894a-abf65db2e7b5" />
+    <option name="uniqueId" value="16669a36-d5c3-4780-be7c-c9522b8318a7" />
   </component>
 </module>

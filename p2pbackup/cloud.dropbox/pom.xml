@@ -26,6 +26,10 @@
             <groupId>at.lucny.p2pbackup</groupId>
             <artifactId>configuration.api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>at.lucny.p2pbackup</groupId>
+            <artifactId>application.api</artifactId>
+        </dependency>
 
         <!-- __________________________________________________________________________ -->
         <!-- Dependencies for Dropbox -->
