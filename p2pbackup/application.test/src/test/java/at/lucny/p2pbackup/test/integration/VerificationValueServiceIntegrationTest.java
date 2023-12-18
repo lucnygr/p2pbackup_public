@@ -34,7 +34,7 @@ import java.util.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
-@ActiveProfiles({"integrationtest", "integrationtest_user1"})
+@ActiveProfiles({"integrationtest"})
 @ContextConfiguration(initializers = BaseSingleApplicationIntegrationTest.ConfigDirAndRootDirectoryContextInitializer.class)
 class VerificationValueServiceIntegrationTest extends BaseSingleApplicationIntegrationTest {
 

@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module version="4">
-  <component name="AdditionalModuleElements">
-    <content url="file://$MODULE_DIR$" dumb="true">
-      <sourceFolder url="file://$MODULE_DIR$/target/generated-sources/protobuf" isTestSource="false" generated="true" />
-    </content>
-  </component>
   <component name="SonarLintModuleSettings">
-    <option name="uniqueId" value="4c2c2f94-3b17-40ac-accf-91e19f001bcf" />
+    <option name="idePathPrefix" value="p2pbackup" />
+    <option name="uniqueId" value="59e94403-25eb-474b-9e5a-b80e920d3534" />
   </component>
 </module>

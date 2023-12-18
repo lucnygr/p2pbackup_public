@@ -12,5 +12,4 @@
 **/*.pfx
 
 user*_config
-
-**/*.run.xml
+/user1_data/
