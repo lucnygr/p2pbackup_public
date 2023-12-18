@@ -38,7 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
-@ActiveProfiles({"integrationtest", "integrationtest_user1"})
+@ActiveProfiles({"integrationtest"})
 @ContextConfiguration(initializers = BaseSingleApplicationIntegrationTest.ConfigDirAndRootDirectoryContextInitializer.class)
 class RestorationIntegrationTest extends BaseSingleApplicationIntegrationTest {
     @Autowired

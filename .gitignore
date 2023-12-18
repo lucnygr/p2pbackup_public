@@ -12,3 +12,4 @@
 **/*.pfx
 
 user*_config
+/user1_data/
