@@ -1,5 +1,6 @@
 package at.lucny.p2pbackup.cloud.dropbox.service
 
+import at.lucny.p2pbackup.application.config.P2PBackupProperties
 import at.lucny.p2pbackup.cloud.CloudStorageService
 import com.dropbox.core.DbxRequestConfig
 import com.dropbox.core.v2.DbxClientV2
@@ -15,7 +16,7 @@ import kotlin.io.path.inputStream
 
 @Service
 @Validated
-class DropboxStorageServiceImpl : CloudStorageService {
+class DropboxStorageServiceImpl(val p2PBackupProperties: P2PBackupProperties) : CloudStorageService {
 
     private val LOGGER: Logger = LoggerFactory.getLogger(DropboxStorageServiceImpl::class.java)
 
