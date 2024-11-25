@@ -34,13 +34,13 @@
     <properties>
         <maven.compiler.release>17</maven.compiler.release>
 
-        <version.bouncycastle>1.77</version.bouncycastle>
-        <version.protobuf>3.25.0</version.protobuf>
+        <version.bouncycastle>1.78.1</version.bouncycastle>
+        <version.protobuf>3.25.5</version.protobuf>
         <version.spring.shell>3.1.5</version.spring.shell>
         <version.liquibase>4.17.2</version.liquibase>
         <version.google.client>1.32.1</version.google.client>
         <version.google.drive>v3-rev20211107-1.32.1</version.google.drive>
-        <version.nextcloud-api>13.0.1</version.nextcloud-api>
+        <version.nextcloud-api>13.1.0</version.nextcloud-api>
         <version.testcontainers>1.19.2</version.testcontainers>
 
         <sonar.exclusions>**/BackupIntegrationTest.java</sonar.exclusions>
