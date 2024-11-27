@@ -14,5 +14,5 @@ logging:
   level:
     org:
       hibernate:
-        SQL: TRACE
-        type: TRACE
+        SQL: WARN
+        type: WARN
