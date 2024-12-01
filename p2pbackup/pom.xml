@@ -43,7 +43,7 @@
         <version.nextcloud-api>13.1.0</version.nextcloud-api>
         <version.testcontainers>1.19.8</version.testcontainers>
         <version.commons-io>2.15.0</version.commons-io>
-        <version.commons-configuration2>2.9.0</version.commons-configuration2>
+        <version.commons-configuration2>2.11.0</version.commons-configuration2>
         <version.commons-beanutils>1.9.4</version.commons-beanutils>
         <version.guava>33.3.1-jre</version.guava>
 
