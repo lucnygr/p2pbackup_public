@@ -12,7 +12,7 @@ import java.util.Map;
 class NextcloudBasedTestUtils {
 
     private final GenericContainer nextcloudContainer =
-            new GenericContainer(DockerImageName.parse("nextcloud:27"))
+            new GenericContainer(DockerImageName.parse("nextcloud:30"))
                     .withExposedPorts(80)
                     .waitingFor(Wait.forHttp("/"))
                     .withEnv("SQLITE_DATABASE", "nextcloud")
