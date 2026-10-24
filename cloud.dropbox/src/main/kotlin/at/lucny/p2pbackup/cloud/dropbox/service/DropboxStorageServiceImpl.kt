@@ -2,9 +2,13 @@ package at.lucny.p2pbackup.cloud.dropbox.service
 
 import at.lucny.p2pbackup.application.config.P2PBackupProperties
 import at.lucny.p2pbackup.cloud.CloudStorageService
+import com.dropbox.core.DbxException
 import com.dropbox.core.DbxRequestConfig
 import com.dropbox.core.v2.DbxClientV2
+import com.dropbox.core.v2.files.CreateFolderErrorException
+import com.dropbox.core.v2.files.GetMetadataErrorException
 import com.dropbox.core.v2.files.WriteMode
+import org.apache.commons.configuration2.Configuration
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -13,15 +17,21 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.inputStream
 
-private const val FOLDER_STORAGE: String = "at.lucny.p2pbackup.cloud.nextcloud"
+
+private const val FOLDER_STORAGE: String = "at.lucny.p2pbackup.cloud.dropbox"
 
 private const val PROVIDER_ID = "at.lucny.p2pbackup.cloud.dropbox.service.DropboxStorageServiceImpl"
 
 @Service
 @Validated
-class DropboxStorageServiceImpl(val p2PBackupProperties: P2PBackupProperties) : CloudStorageService {
+class DropboxStorageServiceImpl(
+    val p2PBackupProperties: P2PBackupProperties,
+    val configuration: Configuration
+) : CloudStorageService {
 
     private val LOGGER: Logger = LoggerFactory.getLogger(DropboxStorageServiceImpl::class.java)
+
+    private val CONFIG_KEY_ENABLED = "at.lucny.p2pbackup.cloud.dropbox.service.ENABLED"
 
     private val ACCESS_TOKEN =
         "sl.BrBZykPEbwhNXbOyWUYu9jwUexjou81GwwLVMGDoupUGsi9Fxap1ZzH3E1gOXsm-6k5PISrhhYtW_Q7L7efj7CK63G3QBn5IO1uzGIe4mQe9quaeM1RHKTQgB42Z4jUcn0mLy5l0HuIK"
@@ -32,10 +42,46 @@ class DropboxStorageServiceImpl(val p2PBackupProperties: P2PBackupProperties) : 
         return PROVIDER_ID;
     }
 
-    override fun configure(config: MutableMap<String, String>?) {
+    override fun configure(config: MutableMap<String, String>) {
+        if (config.containsKey("enabled") && config["enabled"].toBoolean()) {
+            this.configuration.setProperty(CONFIG_KEY_ENABLED, true)
+            this.initialize()
+        }
+    }
+
+    private fun initialize() {
+        if (!this.configuration.getBoolean(CONFIG_KEY_ENABLED, false)) {
+            LOGGER.info("dropbox not enabled")
+            return
+        }
+
         // Create Dropbox client
         val config = DbxRequestConfig.newBuilder("p2pbackup.dropbox.service").build()
         this.dropboxClient = DbxClientV2(config, ACCESS_TOKEN)
+
+        try {
+            val metadata = this.dropboxClient.files().getMetadata(FOLDER_STORAGE)
+        } catch (e: GetMetadataErrorException) {
+            if (e.errorValue.isPath) {
+                val le = e.errorValue.pathValue
+                if (le.isNotFound() || le.isNotFolder) {
+                    try {
+                        LOGGER.info("creating folder '$FOLDER_STORAGE' on dropbox")
+                        // create folder
+                        val createFolderResult = this.dropboxClient.files().createFolderV2(FOLDER_STORAGE)
+                        LOGGER.debug(
+                            "folder '$FOLDER_STORAGE' has id ${createFolderResult.metadata.id}"
+                        )
+                    } catch (e1: CreateFolderErrorException) {
+                        throw IllegalStateException("unable to initialize dropbox", e)
+                    } catch (e1: DbxException) {
+                        throw IllegalStateException("unable to initialize dropbox", e)
+                    }
+                }
+            }
+        }
+
+        LOGGER.info("initialized dropbox")
     }
 
     override fun isInitialized(): Boolean {
@@ -47,7 +93,7 @@ class DropboxStorageServiceImpl(val p2PBackupProperties: P2PBackupProperties) : 
     }
 
     private fun getRemotePath(filename: String): String {
-        return FOLDER_STORAGE + "/" + filename
+        return "$FOLDER_STORAGE/$filename"
     }
 
     override fun upload(path: Path) {
@@ -68,7 +114,7 @@ class DropboxStorageServiceImpl(val p2PBackupProperties: P2PBackupProperties) : 
         LOGGER.trace("end upload")
     }
 
-    override fun share(filename: String?): String {
+    override fun share(filename: String): String {
         LOGGER.trace("begin share(filename={})", filename)
         this.checkInitialized()
 
@@ -79,7 +125,7 @@ class DropboxStorageServiceImpl(val p2PBackupProperties: P2PBackupProperties) : 
         return metaData.url
     }
 
-    override fun delete(filename: String?) {
+    override fun delete(filename: String) {
         LOGGER.trace("begin delete(filename={})", filename)
         this.checkInitialized()
 
