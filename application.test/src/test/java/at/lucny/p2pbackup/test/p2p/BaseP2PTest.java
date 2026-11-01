@@ -1,7 +1,7 @@
 package at.lucny.p2pbackup.test.p2p;
 
-import at.lucny.p2pbackup.core.support.CryptoUtils;
 import at.lucny.p2pbackup.test.BaseTest;
+import at.lucny.p2pbackup.test.TestKeyFixtures;
 import at.lucny.p2pbackup.user.service.UserService;
 import com.google.common.collect.Lists;
 import lombok.SneakyThrows;
@@ -43,11 +43,7 @@ abstract class BaseP2PTest extends BaseTest {
     @BeforeEach
     protected void beforeEachSetupKeystoresAndCertificates() throws NoSuchAlgorithmException, NoSuchProviderException, IOException {
         for (String user : Lists.newArrayList("user1", "user2", "user3")) {
-            String keystorePassword = "password" + user;
-            Path pathToKeyStore = this.getConfigDir(user).resolve(user + ".pfx");
-            Path pathToCertificate = this.getConfigDir(user).resolve(user + ".pem");
-            // generate new keys for the user
-            new CryptoUtils().generateAuthenticationKeys(user, keystorePassword.toCharArray(), pathToKeyStore, pathToCertificate);
+            TestKeyFixtures.copyTo(user, this.getConfigDir(user));
         }
     }
 
@@ -177,7 +173,7 @@ abstract class BaseP2PTest extends BaseTest {
     protected ConfigurableApplicationContext createApplication(String user, Map<String, Object> cloudProviderProperties) {
         this.userToPort.put(user, TestSocketUtils.findAvailableTcpPort());
 
-        String keystorePassword = "password" + user;
+        String keystorePassword = TestKeyFixtures.passwordFor(user);
         String pathToKeyStore = "file:" + this.getConfigDir(user).resolve(user + ".pfx");
 
         SpringApplicationBuilder builder = new SpringApplicationBuilder(TestP2PBackupApplication.class);

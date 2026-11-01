@@ -3,13 +3,12 @@ package at.lucny.p2pbackup.test.integration;
 import at.lucny.p2pbackup.P2PBackupApplicationConfiguration;
 import at.lucny.p2pbackup.application.config.P2PBackupProperties;
 import at.lucny.p2pbackup.core.repository.*;
-import at.lucny.p2pbackup.core.support.CryptoUtils;
 import at.lucny.p2pbackup.localstorage.service.LocalStorageServiceImpl;
 import at.lucny.p2pbackup.test.BaseTest;
+import at.lucny.p2pbackup.test.TestKeyFixtures;
 import at.lucny.p2pbackup.verification.repository.VerificationValueRepository;
 import com.google.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
-import org.junit.BeforeClass;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
@@ -91,15 +90,6 @@ abstract class BaseSingleApplicationIntegrationTest extends BaseTest {
         this.localStorageService.initializeDirectories();
     }
 
-    @BeforeClass
-    static void beforeEachSetupKeystoreAndCertificate() throws NoSuchAlgorithmException, NoSuchProviderException, IOException {
-        String keystorePassword = "passworduser1";
-        Path pathToKeyStore = getConfigDir().resolve("user1.pfx");
-        Path pathToCertificate = getConfigDir().resolve("user1.pem");
-        // generate new keys for the user
-        new CryptoUtils().generateAuthenticationKeys("user1", keystorePassword.toCharArray(), pathToKeyStore, pathToCertificate);
-    }
-
     @AfterEach
     void afterEach_BaseSingleApplicationIntegrationTest() throws IOException {
         FileUtils.cleanDirectory(getConfigDir().toFile());
@@ -112,11 +102,12 @@ abstract class BaseSingleApplicationIntegrationTest extends BaseTest {
 
         @Override
         public void initialize(ConfigurableApplicationContext applicationContext) {
+            TestKeyFixtures.copyTo("user1", getConfigDir());
             Map<String, String> properties = new HashMap<>();
             properties.put("at.lucny.p2p-backup.config-dir", getConfigDir().toString());
             properties.put("at.lucny.p2p-backup.storage-dir", getStorageDir().toString());
             properties.put("at.lucny.p2p-backup.keystore", "file:" + getConfigDir().resolve("user1.pfx").toString());
-            properties.put("at.lucny.p2p-backup.password", "passworduser1");
+            properties.put("at.lucny.p2p-backup.password", TestKeyFixtures.passwordFor("user1"));
             TestPropertyValues.of(properties).applyTo(applicationContext);
         }
     }
@@ -125,13 +116,14 @@ abstract class BaseSingleApplicationIntegrationTest extends BaseTest {
 
         @Override
         public void initialize(ConfigurableApplicationContext applicationContext) {
+            TestKeyFixtures.copyTo("user1", getConfigDir());
             Map<String, String> properties = new HashMap<>();
             properties.put("at.lucny.p2p-backup.config-dir", getConfigDir().toString());
             properties.put("at.lucny.p2p-backup.storage-dir", getStorageDir().toString());
             properties.put("at.lucny.p2p-backup.init.root-directories.0.name", "datadir");
             properties.put("at.lucny.p2p-backup.init.root-directories.0.path", getDataDir().toString());
             properties.put("at.lucny.p2p-backup.keystore", "file:" + getConfigDir().resolve("user1.pfx").toString());
-            properties.put("at.lucny.p2p-backup.password", "passworduser1");
+            properties.put("at.lucny.p2p-backup.password", TestKeyFixtures.passwordFor("user1"));
             TestPropertyValues.of(properties).applyTo(applicationContext);
         }
     }
