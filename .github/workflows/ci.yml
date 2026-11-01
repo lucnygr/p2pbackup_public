@@ -57,7 +57,17 @@ jobs:
           key: dependency-check-${{ github.run_id }}
           restore-keys: dependency-check-
       # Non-blocking until the findings baseline is triaged (spec 01 design note).
-      - run: mvn -B -ntp org.owasp:dependency-check-maven:aggregate -DnvdApiKey=${{ secrets.NVD_API_KEY }}
+      # The NVD API key is optional: without the NVD_API_KEY secret the scan still runs,
+      # but the NVD download is heavily rate-limited and may fail. The key is read from the
+      # environment, so it never appears on the command line.
+      - run: |
+          args=""
+          if [ -n "$NVD_API_KEY" ]; then
+            args="-DnvdApiKeyEnvironmentVariable=NVD_API_KEY"
+          fi
+          mvn -B -ntp org.owasp:dependency-check-maven:aggregate $args
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         continue-on-error: true
       - uses: actions/upload-artifact@v4
         if: always()
