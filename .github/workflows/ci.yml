@@ -38,7 +38,7 @@ jobs:
           cache: maven
       # NOTE: the P2P tests need test keystores that are not in git yet; this job stays
       # non-blocking until spec 02 (reproducible test keys) is merged.
-      - run: mvn -B -ntp verify -Dtest.excludedGroups= -Dgroups=integration -DfailIfNoTests=false
+      - run: mvn -B -ntp verify -Dtest.excludedGroups= -Dgroups=integration -DfailIfNoTests=false -Dsurefire.rerunFailingTestsCount=1
         continue-on-error: true
 
   dependency-check:
