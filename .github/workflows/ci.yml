@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [ development ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      # integration-tagged tests are excluded by default (see test.excludedGroups in pom.xml)
+      - run: mvn -B -ntp verify
+
+  integration:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      # NOTE: the P2P tests need test keystores that are not in git yet; this job stays
+      # non-blocking until spec 02 (reproducible test keys) is merged.
+      - run: mvn -B -ntp verify -Dtest.excludedGroups= -Dgroups=integration -DfailIfNoTests=false
+        continue-on-error: true
+
+  dependency-check:
+    name: OWASP dependency-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: dependency-check-${{ github.run_id }}
+          restore-keys: dependency-check-
+      # Non-blocking until the findings baseline is triaged (spec 01 design note).
+      - run: mvn -B -ntp org.owasp:dependency-check-maven:aggregate -DnvdApiKey=${{ secrets.NVD_API_KEY }}
+        continue-on-error: true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dependency-check-report
+          path: target/dependency-check-report.*
+          if-no-files-found: ignore

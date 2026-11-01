@@ -13,3 +13,7 @@
 
 user*_config
 /user1_data/
+
+# agent tooling
+.claude/
+.agents/
