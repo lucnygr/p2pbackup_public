@@ -13,3 +13,11 @@
 
 user*_config
 /user1_data/
+
+# agent tooling
+.claude/
+.agents/
+skills-lock.json
+
+# local planning docs
+docs/

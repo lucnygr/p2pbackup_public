@@ -3,6 +3,7 @@ package at.lucny.p2pbackup.test;
 import at.lucny.p2pbackup.backup.support.BackupUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -14,6 +15,8 @@ import java.util.List;
 
 import static at.lucny.p2pbackup.backup.support.BackupConstants.ONE_KILOBYTE;
 
+/** All tests in this module need ports, a database and/or Docker; they run in the CI job tagged {@code integration}. */
+@Tag("integration")
 public abstract class BaseTest {
 
     @BeforeAll
