@@ -34,7 +34,7 @@
     <properties>
         <maven.compiler.release>17</maven.compiler.release>
 
-        <version.bouncycastle>1.78.1</version.bouncycastle>
+        <version.bouncycastle>1.85</version.bouncycastle>
         <version.protobuf>3.25.5</version.protobuf>
         <version.spring.shell>3.2.8</version.spring.shell>
         <version.liquibase>4.30.0</version.liquibase>
