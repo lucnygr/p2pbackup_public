@@ -17,3 +17,7 @@ user*_config
 # agent tooling
 .claude/
 .agents/
+skills-lock.json
+
+# local planning docs
+docs/
