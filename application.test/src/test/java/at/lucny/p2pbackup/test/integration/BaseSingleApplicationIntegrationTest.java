@@ -102,7 +102,7 @@ abstract class BaseSingleApplicationIntegrationTest extends BaseTest {
 
         @Override
         public void initialize(ConfigurableApplicationContext applicationContext) {
-            TestKeyFixtures.copyTo("user1", getConfigDir());
+            TestKeyFixtures.generateTo("user1", getConfigDir());
             Map<String, String> properties = new HashMap<>();
             properties.put("at.lucny.p2p-backup.config-dir", getConfigDir().toString());
             properties.put("at.lucny.p2p-backup.storage-dir", getStorageDir().toString());
@@ -116,7 +116,7 @@ abstract class BaseSingleApplicationIntegrationTest extends BaseTest {
 
         @Override
         public void initialize(ConfigurableApplicationContext applicationContext) {
-            TestKeyFixtures.copyTo("user1", getConfigDir());
+            TestKeyFixtures.generateTo("user1", getConfigDir());
             Map<String, String> properties = new HashMap<>();
             properties.put("at.lucny.p2p-backup.config-dir", getConfigDir().toString());
             properties.put("at.lucny.p2p-backup.storage-dir", getStorageDir().toString());

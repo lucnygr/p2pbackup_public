@@ -43,7 +43,7 @@ abstract class BaseP2PTest extends BaseTest {
     @BeforeEach
     protected void beforeEachSetupKeystoresAndCertificates() throws NoSuchAlgorithmException, NoSuchProviderException, IOException {
         for (String user : Lists.newArrayList("user1", "user2", "user3")) {
-            TestKeyFixtures.copyTo(user, this.getConfigDir(user));
+            TestKeyFixtures.generateTo(user, this.getConfigDir(user));
         }
     }
 
