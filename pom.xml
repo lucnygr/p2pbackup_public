@@ -45,7 +45,7 @@
         <version.commons-io>2.15.0</version.commons-io>
         <version.commons-configuration2>2.11.0</version.commons-configuration2>
         <version.commons-beanutils>1.9.4</version.commons-beanutils>
-        <version.guava>33.3.1-jre</version.guava>
+        <version.guava>33.7.1-jre</version.guava>
 
         <!-- JUnit tag excluded by default; the CI integration job overrides it (-Dtest.excludedGroups= -Dgroups=integration) -->
         <test.excludedGroups>integration</test.excludedGroups>
